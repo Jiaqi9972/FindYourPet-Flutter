@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "164754565833",
+    "project_id": "findyourpet-b0280",
+    "storage_bucket": "findyourpet-b0280.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:164754565833:android:d0f4ebc52f0811a77dfb18",
+        "android_client_info": {
+          "package_name": "me.findthepeach"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-HvCPOSnFHv4UWnZixxaBdjs-vhhCZpA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
