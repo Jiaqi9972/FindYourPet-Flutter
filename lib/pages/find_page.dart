@@ -28,6 +28,29 @@ class _FindPageState extends State<FindPage> {
 
   // Get user's location
   void _getUserLocation() async {
+    final hasPermission = await _handleLocationPermission();
+
+    if (!hasPermission) {
+      setState(() {
+        _currentPosition = Position(
+          longitude: -122.4194,
+          latitude: 37.7749,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        );
+        _filters['latitude'] = _currentPosition!.latitude;
+        _filters['longitude'] = _currentPosition!.longitude;
+        _filters['radiusInMiles'] = _radiusInMiles;
+      });
+      return;
+    }
+
     try {
       LocationSettings locationSettings = const LocationSettings(
         accuracy: LocationAccuracy.high,
@@ -45,9 +68,95 @@ class _FindPageState extends State<FindPage> {
       });
     } catch (e) {
       print('Error getting user location: $e');
-      _showAlert(
-          'Unable to get current location. Please enable location services.');
+      _showAlert('Unable to get location. Using default location.');
     }
+  }
+
+  Future<bool> _handleLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      showCupertinoDialog(
+        context: context,
+        builder: (BuildContext context) => CupertinoAlertDialog(
+          title: const Text('Location Services Disabled'),
+          content: const Text(
+              'Location services are required to show pets nearby. Please enable location services in Settings.'),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.pop(context),
+            ),
+            CupertinoDialogAction(
+              child: const Text('Settings'),
+              onPressed: () {
+                Navigator.pop(context);
+                Geolocator.openLocationSettings();
+              },
+            ),
+          ],
+        ),
+      );
+      return false;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        showCupertinoDialog(
+          context: context,
+          builder: (BuildContext context) => CupertinoAlertDialog(
+            title: const Text('Location Permission'),
+            content: const Text(
+                'Location permission is required to show pets nearby. Would you like to enable it?'),
+            actions: <Widget>[
+              CupertinoDialogAction(
+                child: const Text('No'),
+                onPressed: () => Navigator.pop(context),
+              ),
+              CupertinoDialogAction(
+                child: const Text('Settings'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Geolocator.openAppSettings();
+                },
+              ),
+            ],
+          ),
+        );
+        return false;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      showCupertinoDialog(
+        context: context,
+        builder: (BuildContext context) => CupertinoAlertDialog(
+          title: const Text('Location Permission'),
+          content: const Text(
+              'Location permissions are permanently denied. Please enable them in your phone settings.'),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.pop(context),
+            ),
+            CupertinoDialogAction(
+              child: const Text('Settings'),
+              onPressed: () {
+                Navigator.pop(context);
+                Geolocator.openAppSettings();
+              },
+            ),
+          ],
+        ),
+      );
+      return false;
+    }
+
+    return true;
   }
 
   // Alert user
