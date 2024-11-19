@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:find_your_pet/utils/color.dart';
 import 'package:find_your_pet/utils/color_dark.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
-import 'package:find_your_pet/pages/main/find_page.dart';
-import 'package:find_your_pet/pages/add_pet/add_page.dart';
+import 'package:find_your_pet/pages/find/find_page.dart';
+import 'package:find_your_pet/pages/add/add_page.dart';
 import 'package:find_your_pet/pages/message_page.dart';
 import 'package:find_your_pet/pages/profile/profile_page.dart';
 
@@ -14,6 +14,7 @@ class MainLayout extends StatefulWidget {
   const MainLayout({super.key, this.currentIndex = 0});
 
   @override
+  // ignore: library_private_types_in_public_api
   _MainLayoutState createState() => _MainLayoutState();
 }
 
@@ -46,7 +47,7 @@ class _MainLayoutState extends State<MainLayout> {
             themeProvider.isDarkMode ? AppColorsDark.card : AppColors.card,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.search), label: 'Find'),
+              icon: Icon(CupertinoIcons.paw), label: 'Find'),
           BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.add_circled_solid), label: 'Add'),
           BottomNavigationBarItem(
@@ -75,7 +76,7 @@ class _MainLayoutState extends State<MainLayout> {
       case 2:
         return const MessagePage();
       case 3:
-        return ProfilePage();
+        return const ProfilePage();
       default:
         return const FindPage();
     }

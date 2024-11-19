@@ -8,21 +8,22 @@ import 'package:find_your_pet/models/pet_status.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
-class FilterSelectorSheet extends StatefulWidget {
+class ListFilterSelectorSheet extends StatefulWidget {
   final PetStatus currentStatus;
   final Function(PetStatus) onStatusChanged;
 
-  const FilterSelectorSheet({
+  const ListFilterSelectorSheet({
     super.key,
     required this.currentStatus,
     required this.onStatusChanged,
   });
 
   @override
-  State<FilterSelectorSheet> createState() => _FilterSelectorSheetState();
+  State<ListFilterSelectorSheet> createState() =>
+      _ListFilterSelectorSheetState();
 }
 
-class _FilterSelectorSheetState extends State<FilterSelectorSheet> {
+class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
   GoogleMapController? _mapController;
   Set<Circle> _circles = {};
   Set<Marker> _markers = {};
@@ -233,7 +234,7 @@ class _FilterSelectorSheetState extends State<FilterSelectorSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    'Choose Filters',
+                    'Filters',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,

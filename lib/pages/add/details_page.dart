@@ -1,4 +1,4 @@
-import 'package:find_your_pet/pages/add_pet/cupertino_autocomplete_address.dart';
+import 'package:find_your_pet/pages/add/cupertino_autocomplete_address.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:find_your_pet/utils/color.dart';
 import 'package:find_your_pet/utils/color_dark.dart';

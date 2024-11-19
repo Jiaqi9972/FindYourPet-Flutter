@@ -10,17 +10,18 @@ class ViewModeSwitcher extends StatelessWidget {
   final Function(ViewMode) onViewModeChanged;
 
   const ViewModeSwitcher({
-    Key? key,
+    super.key,
     required this.currentView,
     required this.onViewModeChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>();
 
     return SizedBox(
-      width: double.infinity, // Make the switcher occupy full width
+      height: 40,
+      width: double.infinity,
       child: CupertinoSegmentedControl<ViewMode>(
         groupValue: currentView,
         onValueChanged: onViewModeChanged,

@@ -1,15 +1,15 @@
+import 'package:find_your_pet/widgets/find/list/list_filter_selector_sheet.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
 import 'package:find_your_pet/models/pet_status.dart';
-import 'package:find_your_pet/widgets/main/filter_selector_sheet.dart';
 
-class ListViewFilters extends StatelessWidget {
+class ListViewHeader extends StatelessWidget {
   final PetStatus currentStatus;
   final Function(PetStatus) onStatusChanged;
 
-  const ListViewFilters({
+  const ListViewHeader({
     super.key,
     required this.currentStatus,
     required this.onStatusChanged,
@@ -18,7 +18,7 @@ class ListViewFilters extends StatelessWidget {
   void _showFilterSelector(BuildContext context) {
     showCupertinoModalPopup(
       context: context,
-      builder: (context) => FilterSelectorSheet(
+      builder: (context) => ListFilterSelectorSheet(
         currentStatus: currentStatus,
         onStatusChanged: onStatusChanged,
       ),
@@ -31,8 +31,8 @@ class ListViewFilters extends StatelessWidget {
     final locationProvider = context.watch<LocationProvider>();
 
     return Container(
-      color: theme.colors.card.withOpacity(0.1),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      color: theme.colors.card.withOpacity(0.9),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Row(
         children: [
           Icon(

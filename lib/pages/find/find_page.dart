@@ -1,6 +1,6 @@
 // lib/pages/main/find_page.dart
 
-import 'package:find_your_pet/widgets/main/view_mode_switcher.dart';
+import 'package:find_your_pet/widgets/find/view_mode_switcher.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:find_your_pet/models/location_info.dart';
@@ -8,10 +8,10 @@ import 'package:find_your_pet/models/view_mode.dart';
 import 'package:find_your_pet/models/pet_status.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
-import 'package:find_your_pet/widgets/main/list/list_view_filters.dart';
-import 'package:find_your_pet/widgets/main/map/map_view_filters.dart';
-import 'package:find_your_pet/widgets/main/pet_list_view.dart';
-import 'package:find_your_pet/widgets/main/pet_map_view.dart';
+import 'package:find_your_pet/widgets/find/list/list_view_header.dart';
+import 'package:find_your_pet/widgets/find/map/map_view_header.dart';
+import 'package:find_your_pet/widgets/find/list/pet_list_view.dart';
+import 'package:find_your_pet/widgets/find/map/pet_map_view.dart';
 
 class FindPage extends StatefulWidget {
   const FindPage({super.key});
@@ -108,13 +108,17 @@ class _FindPageState extends State<FindPage> {
     // Check if map center coordinates are available
     if (_mapCenterLat == null || _mapCenterLng == null) {
       // Show loading indicator
-      return Center(
+      return const Center(
         child: CupertinoActivityIndicator(),
       );
     }
 
     return CupertinoPageScaffold(
       backgroundColor: theme.colors.background,
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Find Your Pet'),
+        backgroundColor: theme.colors.background,
+      ),
       child: _currentView == ViewMode.list
           ? Column(
               children: [
@@ -132,7 +136,7 @@ class _FindPageState extends State<FindPage> {
                         ),
                       ),
                       // Location and Status Filters
-                      ListViewFilters(
+                      ListViewHeader(
                         currentStatus: _currentStatus,
                         onStatusChanged: _onStatusChanged,
                       ),
@@ -156,15 +160,13 @@ class _FindPageState extends State<FindPage> {
                     },
                     initialLat: _mapCenterLat!,
                     initialLng: _mapCenterLng!,
-                    // Remove or comment out the onMapPositionChanged callback
-                    // onMapPositionChanged: (lat, lng) {},
                   ),
                 ),
                 Positioned(
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: MapViewFilters(
+                  child: MapViewHeader(
                     currentStatus: _currentStatus,
                     onStatusChanged: _onStatusChanged,
                     currentView: _currentView,
