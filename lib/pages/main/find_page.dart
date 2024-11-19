@@ -22,7 +22,7 @@ class FindPage extends StatefulWidget {
 
 class _FindPageState extends State<FindPage> {
   ViewMode _currentView = ViewMode.list;
-  PetStatus _currentStatus = PetStatus.all;
+  PetStatus _currentStatus = PetStatus.both;
   final Map<String, dynamic> _filters = {
     'lost': null,
     'radiusInMiles': 5.0,
@@ -68,7 +68,7 @@ class _FindPageState extends State<FindPage> {
     setState(() {
       _currentStatus = status;
       switch (status) {
-        case PetStatus.all:
+        case PetStatus.both:
           _filters['lost'] = null;
           break;
         case PetStatus.lost:

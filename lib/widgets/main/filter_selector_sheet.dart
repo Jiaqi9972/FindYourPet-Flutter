@@ -4,17 +4,25 @@ import 'package:provider/provider.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
 import 'package:find_your_pet/models/location_info.dart';
+import 'package:find_your_pet/models/pet_status.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
-class LocationSelectorSheet extends StatefulWidget {
-  const LocationSelectorSheet({super.key});
+class FilterSelectorSheet extends StatefulWidget {
+  final PetStatus currentStatus;
+  final Function(PetStatus) onStatusChanged;
+
+  const FilterSelectorSheet({
+    super.key,
+    required this.currentStatus,
+    required this.onStatusChanged,
+  });
 
   @override
-  State<LocationSelectorSheet> createState() => _LocationSelectorSheetState();
+  State<FilterSelectorSheet> createState() => _FilterSelectorSheetState();
 }
 
-class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
+class _FilterSelectorSheetState extends State<FilterSelectorSheet> {
   GoogleMapController? _mapController;
   Set<Circle> _circles = {};
   Set<Marker> _markers = {};
@@ -23,14 +31,15 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
   String _centerAddress = '';
   final TextEditingController _searchController = TextEditingController();
   bool _mapInitialized = false;
+  late PetStatus _status;
 
   @override
   void initState() {
     super.initState();
+    _status = widget.currentStatus;
     final locationProvider = context.read<LocationProvider>();
     final locationInfo = locationProvider.locationInfo;
 
-    // Initialize with saved location if available, otherwise use default
     _radius = locationProvider.radius;
     _center = locationInfo != null
         ? LatLng(locationInfo.latitude, locationInfo.longitude)
@@ -224,7 +233,7 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    'Choose a location to see what\'s available',
+                    'Choose Filters',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -263,6 +272,177 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
               },
               myLocationEnabled: true,
               myLocationButtonEnabled: false,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: theme.colors.card,
+            child: Column(
+              children: [
+                // Status buttons row
+                Row(
+                  children: [
+                    for (var status in [
+                      PetStatus.lost,
+                      PetStatus.both,
+                      PetStatus.found
+                    ])
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: CupertinoButton(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            color: _status == status
+                                ? theme.colors.primary
+                                : theme.colors.background,
+                            borderRadius: BorderRadius.circular(8),
+                            onPressed: () {
+                              setState(() => _status = status);
+                              widget.onStatusChanged(status);
+                            },
+                            child: Text(
+                              status == PetStatus.both
+                                  ? 'BOTH'
+                                  : status.name.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: _status == status
+                                    ? theme.colors.primaryForeground
+                                    : theme.colors.foreground,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Search bar row
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: theme.colors.background,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: theme.colors.border,
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.colors.border.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(left: 12),
+                              child: Icon(
+                                CupertinoIcons.search,
+                                color: theme.colors.secondaryForeground,
+                              ),
+                            ),
+                            Expanded(
+                              child: CupertinoTextField(
+                                controller: _searchController,
+                                placeholder: 'Enter zipcode',
+                                decoration: null,
+                                style:
+                                    TextStyle(color: theme.colors.foreground),
+                                onSubmitted: _searchLocation,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colors.border.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        color: theme.colors.primary,
+                        borderRadius: BorderRadius.circular(8),
+                        onPressed: () =>
+                            _searchLocation(_searchController.text),
+                        child: Text(
+                          'Search',
+                          style: TextStyle(
+                            color: theme.colors.primaryForeground,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Current location button
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colors.border.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: _useCurrentLocation,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: theme.colors.background,
+                        border: Border.all(
+                          color: theme.colors.border,
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            CupertinoIcons.location,
+                            color: theme.colors.primary,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Current location',
+                            style: TextStyle(
+                              color: theme.colors.primary,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Container(
@@ -311,91 +491,16 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  height: 44,
+                  width: double.infinity,
                   decoration: BoxDecoration(
-                    color: theme.colors.background,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        CupertinoIcons.search,
-                        color: theme.colors.secondaryForeground,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: CupertinoTextField(
-                          controller: _searchController,
-                          placeholder: 'Enter zipcode',
-                          decoration: null,
-                          style: TextStyle(color: theme.colors.foreground),
-                          onSubmitted: _searchLocation,
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colors.border.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: _useCurrentLocation,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              CupertinoIcons.location,
-                              color: theme.colors.primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                'Current location',
-                                style: TextStyle(
-                                  color: theme.colors.primary,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () =>
-                            _searchLocation(_searchController.text),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              CupertinoIcons.map,
-                              color: theme.colors.primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                'Search',
-                                style: TextStyle(
-                                  color: theme.colors.primary,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
                   child: CupertinoButton(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     color: theme.colors.primary,
@@ -412,9 +517,12 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
                       );
                       Navigator.pop(context);
                     },
-                    child: const Text(
+                    child: Text(
                       'Show results',
-                      style: TextStyle(fontSize: 18),
+                      style: TextStyle(
+                        color: theme.colors.primaryForeground,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
                 ),

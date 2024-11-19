@@ -1,10 +1,9 @@
-// lib/widgets/main/list/list_view_filters.dart
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
 import 'package:find_your_pet/models/pet_status.dart';
-import 'package:find_your_pet/widgets/main/location_selector_sheet.dart';
+import 'package:find_your_pet/widgets/main/filter_selector_sheet.dart';
 
 class ListViewFilters extends StatelessWidget {
   final PetStatus currentStatus;
@@ -16,72 +15,12 @@ class ListViewFilters extends StatelessWidget {
     required this.onStatusChanged,
   });
 
-  void _showLocationSelector(BuildContext context) {
+  void _showFilterSelector(BuildContext context) {
     showCupertinoModalPopup(
       context: context,
-      builder: (context) => const LocationSelectorSheet(),
-    );
-  }
-
-  void _showStatusSelector(BuildContext context) {
-    final theme = context.read<ThemeProvider>();
-    final themeData = theme.getAppTheme();
-
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => Container(
-        height: 250,
-        color: themeData.scaffoldBackgroundColor,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: theme.colors.card,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(color: theme.colors.accentForeground),
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  Text(
-                    'Select Status',
-                    style: themeData.textTheme.navTitleTextStyle,
-                  ),
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: Text(
-                      'Done',
-                      style: TextStyle(color: theme.colors.cardForeground),
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                backgroundColor: themeData.scaffoldBackgroundColor,
-                itemExtent: 32.0,
-                onSelectedItemChanged: (index) {
-                  onStatusChanged(PetStatus.values[index]);
-                },
-                children: PetStatus.values.map((status) {
-                  return Center(
-                    child: Text(
-                      status.name.toUpperCase(),
-                      style: themeData.textTheme.textStyle,
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
+      builder: (context) => FilterSelectorSheet(
+        currentStatus: currentStatus,
+        onStatusChanged: onStatusChanged,
       ),
     );
   }
@@ -96,51 +35,37 @@ class ListViewFilters extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
         children: [
-          // Location button
+          Icon(
+            CupertinoIcons.location_fill,
+            color: theme.colors.foreground,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
           Expanded(
-            child: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => _showLocationSelector(context),
-              child: Row(
-                children: [
-                  Icon(
-                    CupertinoIcons.location,
-                    color: theme.colors.cardForeground,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      locationProvider.locationInfo?.displayName ??
-                          'Current Location',
-                      style: TextStyle(
-                        color: theme.colors.cardForeground,
-                        fontSize: 16,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+            child: Text(
+              locationProvider.locationInfo?.displayName ?? 'Select Location',
+              style: TextStyle(
+                color: theme.colors.foreground,
+                fontSize: 16,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          // Radius display
           Text(
             'Within ${locationProvider.radius.toInt()} miles',
             style: TextStyle(
-              color: theme.colors.cardForeground,
-              fontSize: 14,
+              color: theme.colors.foreground,
+              fontSize: 16,
             ),
           ),
           const SizedBox(width: 16),
-          // Status selector
           CupertinoButton(
             padding: EdgeInsets.zero,
-            onPressed: () => _showStatusSelector(context),
+            onPressed: () => _showFilterSelector(context),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               decoration: BoxDecoration(
-                color: theme.colors.card,
+                color: theme.colors.secondary,
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: theme.colors.border),
               ),
@@ -149,16 +74,8 @@ class ListViewFilters extends StatelessWidget {
                 children: [
                   Icon(
                     CupertinoIcons.slider_horizontal_3,
-                    color: theme.colors.cardForeground,
+                    color: theme.colors.secondaryForeground,
                     size: 16,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    currentStatus.name.toUpperCase(),
-                    style: TextStyle(
-                      color: theme.colors.cardForeground,
-                      fontSize: 14,
-                    ),
                   ),
                 ],
               ),
