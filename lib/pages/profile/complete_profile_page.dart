@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:find_your_pet/api/api_service.dart';
 
 class CompleteProfilePage extends StatefulWidget {
+  const CompleteProfilePage({super.key});
+
   @override
   _CompleteProfilePageState createState() => _CompleteProfilePageState();
 }

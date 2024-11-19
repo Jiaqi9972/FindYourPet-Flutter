@@ -27,7 +27,7 @@ class DetailsPage extends StatefulWidget {
   final VoidCallback onBack;
 
   const DetailsPage({
-    Key? key,
+    super.key,
     required this.name,
     required this.description,
     required this.posterContact,
@@ -36,7 +36,7 @@ class DetailsPage extends StatefulWidget {
     required this.longitude,
     required this.onSave,
     required this.onBack,
-  }) : super(key: key);
+  });
 
   @override
   _DetailsPageState createState() => _DetailsPageState();

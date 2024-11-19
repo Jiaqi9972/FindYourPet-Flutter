@@ -1,6 +1,9 @@
+// lib/pages/main/pet_detail_page.dart
 import 'package:flutter/cupertino.dart';
-import '../models/lost_pet_detail.dart';
-import '../api/api_service.dart';
+import 'package:provider/provider.dart';
+import 'package:find_your_pet/provider/theme_provider.dart';
+import '../../models/lost_pet_detail.dart';
+import '../../api/api_service.dart';
 
 class PetDetailPage extends StatefulWidget {
   final String petId;
@@ -8,7 +11,6 @@ class PetDetailPage extends StatefulWidget {
   const PetDetailPage({super.key, required this.petId});
 
   @override
-  // ignore: library_private_types_in_public_api
   _PetDetailPageState createState() => _PetDetailPageState();
 }
 
@@ -37,14 +39,25 @@ class _PetDetailPageState extends State<PetDetailPage> {
   }
 
   void _showAlert(String message) {
+    final theme = context.read<ThemeProvider>();
+
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
+        title: Text(
+          'Error',
+          style: TextStyle(color: theme.colors.destructiveForeground),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: theme.colors.primaryForeground),
+        ),
         actions: [
           CupertinoDialogAction(
-            child: const Text('OK'),
+            child: Text(
+              'OK',
+              style: TextStyle(color: theme.colors.primaryForeground),
+            ),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -54,21 +67,34 @@ class _PetDetailPageState extends State<PetDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.watch<ThemeProvider>();
+    final themeData = theme.getAppTheme();
+
     if (_isLoading) {
-      return const Center(
-        child: CupertinoActivityIndicator(),
+      return Center(
+        child: CupertinoActivityIndicator(
+          color: theme.colors.foreground,
+        ),
       );
     }
 
     if (_petDetail == null) {
-      return const Center(
-        child: Text('No details available'),
+      return Center(
+        child: Text(
+          'No details available',
+          style: themeData.textTheme.textStyle,
+        ),
       );
     }
 
     return CupertinoPageScaffold(
+      backgroundColor: themeData.scaffoldBackgroundColor,
       navigationBar: CupertinoNavigationBar(
-        middle: Text(_petDetail!.name),
+        middle: Text(
+          _petDetail!.name,
+          style: themeData.textTheme.navTitleTextStyle,
+        ),
+        backgroundColor: themeData.barBackgroundColor,
       ),
       child: SafeArea(
         child: SingleChildScrollView(
@@ -78,28 +104,27 @@ class _PetDetailPageState extends State<PetDetailPage> {
             children: [
               Text(
                 _petDetail!.name,
-                style:
-                    CupertinoTheme.of(context).textTheme.navLargeTitleTextStyle,
+                style: themeData.textTheme.navLargeTitleTextStyle,
               ),
               const SizedBox(height: 8),
               Text(
                 'Status: ${_petDetail!.lost ? 'Lost' : 'Found'}',
-                style: CupertinoTheme.of(context).textTheme.textStyle,
+                style: themeData.textTheme.textStyle,
               ),
               const SizedBox(height: 8),
               Text(
                 _petDetail!.description,
-                style: CupertinoTheme.of(context).textTheme.textStyle,
+                style: themeData.textTheme.textStyle,
               ),
               const SizedBox(height: 8),
               Text(
                 'Contact: ${_petDetail!.posterContact}',
-                style: CupertinoTheme.of(context).textTheme.textStyle,
+                style: themeData.textTheme.textStyle,
               ),
               const SizedBox(height: 8),
               Text(
                 'Date: ${_petDetail!.date.toLocal()}',
-                style: CupertinoTheme.of(context).textTheme.textStyle,
+                style: themeData.textTheme.textStyle,
               ),
               const SizedBox(height: 8),
               if (_petDetail!.petImageUrls.isNotEmpty)
@@ -108,7 +133,7 @@ class _PetDetailPageState extends State<PetDetailPage> {
                   children: [
                     Text(
                       'Image URLs:',
-                      style: CupertinoTheme.of(context).textTheme.textStyle,
+                      style: themeData.textTheme.textStyle,
                     ),
                     const SizedBox(height: 8),
                     ..._petDetail!.petImageUrls.map(
@@ -116,12 +141,9 @@ class _PetDetailPageState extends State<PetDetailPage> {
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Text(
                           url,
-                          style: CupertinoTheme.of(context)
-                              .textTheme
-                              .textStyle
-                              .copyWith(
-                                color: CupertinoColors.activeBlue,
-                              ),
+                          style: themeData.textTheme.textStyle.copyWith(
+                            color: theme.colors.cardForeground,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

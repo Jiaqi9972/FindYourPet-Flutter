@@ -11,14 +11,14 @@ class CupertinoAddressAutocomplete extends StatefulWidget {
   final Color? clearButtonColor;
 
   const CupertinoAddressAutocomplete({
-    Key? key,
+    super.key,
     required this.controller,
     required this.apiKey,
     required this.onLocationSelected,
     this.textStyle,
     required this.backgroundColor,
     this.clearButtonColor,
-  }) : super(key: key);
+  });
 
   @override
   State<CupertinoAddressAutocomplete> createState() =>

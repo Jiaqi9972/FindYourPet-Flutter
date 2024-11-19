@@ -9,7 +9,7 @@ import 'image_page.dart';
 import 'details_page.dart';
 
 class AddPage extends StatefulWidget {
-  const AddPage({Key? key}) : super(key: key);
+  const AddPage({super.key});
 
   @override
   State<AddPage> createState() => _AddPageState();
@@ -46,8 +46,9 @@ class _AddPageState extends State<AddPage> {
     if (posterContact.trim().isEmpty) missingFields.add('Contact Information');
     if (petImageUrls.isEmpty) missingFields.add('Pet Images');
     if (date == null) missingFields.add('Date');
-    if (longitude == null || latitude == null)
+    if (longitude == null || latitude == null) {
       missingFields.add('Location (please select from suggestions)');
+    }
 
     if (missingFields.isNotEmpty) {
       showCupertinoDialog(
