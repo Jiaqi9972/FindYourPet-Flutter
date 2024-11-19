@@ -47,5 +47,17 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Need your location to show lost pets nearby.</string>
+    
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Need your location to update nearby pets information and send notifications about lost pets in your area.</string>
+    
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Need your location to show and update nearby pets information, and send notifications about lost pets in your area.</string>
+    
+    <key>NSLocationTemporaryUsageDescriptionDictionary</key>
+    <dict>
+        <key>FindPetsNearby</key>
+        <string>Need precise location to help find pets in your immediate vicinity.</string>
+    </dict>
 </dict>
 </plist>
