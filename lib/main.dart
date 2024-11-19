@@ -1,20 +1,28 @@
+import 'package:find_your_pet/firebase_options.dart';
 import 'package:find_your_pet/layout/main_layout.dart';
-import 'package:find_your_pet/pages/complete_profile_page.dart';
-import 'package:find_your_pet/pages/profile_page.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:find_your_pet/pages/profile/complete_profile_page.dart';
+import 'package:find_your_pet/pages/profile/profile_page.dart';
+import 'package:find_your_pet/provider/location_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:find_your_pet/pages/login_page.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:find_your_pet/pages/profile/login_page.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LocationProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -38,10 +46,10 @@ class MyApp extends StatelessWidget {
           ],
           theme: themeProvider.getAppTheme(),
           routes: {
-            '/login': (context) => LoginPage(),
-            '/complete_profile': (context) => CompleteProfilePage(),
+            '/login': (context) => const LoginPage(),
+            '/complete_profile': (context) => const CompleteProfilePage(),
             '/main': (context) => const MainLayout(),
-            '/profile': (context) => ProfilePage()
+            '/profile': (context) => const ProfilePage()
           },
           home: const MainLayout(),
         );

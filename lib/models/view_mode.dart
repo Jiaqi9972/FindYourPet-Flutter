@@ -1,0 +1,4 @@
+enum ViewMode {
+  list,
+  map,
+}

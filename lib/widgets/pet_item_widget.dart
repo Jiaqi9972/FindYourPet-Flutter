@@ -5,8 +5,7 @@ class PetItemWidget extends StatelessWidget {
   final LostPetDetail pet; // Use LostPetDetail model
   final VoidCallback onTap;
 
-  const PetItemWidget({Key? key, required this.pet, required this.onTap})
-      : super(key: key);
+  const PetItemWidget({super.key, required this.pet, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

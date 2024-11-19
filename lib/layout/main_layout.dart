@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:find_your_pet/utils/color.dart';
 import 'package:find_your_pet/utils/color_dark.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
-import 'package:find_your_pet/pages/find_page.dart';
+import 'package:find_your_pet/pages/main/find_page.dart';
 import 'package:find_your_pet/pages/add_pet/add_page.dart';
 import 'package:find_your_pet/pages/message_page.dart';
-import 'package:find_your_pet/pages/profile_page.dart';
+import 'package:find_your_pet/pages/profile/profile_page.dart';
 
 class MainLayout extends StatefulWidget {
   final int currentIndex;

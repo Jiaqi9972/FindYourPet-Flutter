@@ -2,25 +2,51 @@
 import 'package:flutter/cupertino.dart';
 
 class AppColorsDark {
-  // Background and Foreground Colors
-  static const Color background = CupertinoColors.black;
-  static const Color foreground = CupertinoColors.white;
+  // Base Colors
+  static const Color background = Color(0xFF0D1912); // Background color
+  static const Color foreground = Color(0xFFFFFFFF); // Foreground color (text)
 
   // Card Colors
-  static const Color card = CupertinoColors.darkBackgroundGray;
-  static const Color cardForeground = CupertinoColors.white;
+  static const Color card = Color(0xFF0D1912); // Card background color
+  static const Color cardForeground = Color(0xFFFFFFFF); // Card text color
+
+  // Popover Colors
+  static const Color popover = Color(0xFF0A110D); // Popover background color
+  static const Color popoverForeground =
+      Color(0xFFFFFFFF); // Popover text color
 
   // Primary Colors
-  static const Color primary = CupertinoColors.activeBlue;
-  static const Color primaryForeground = CupertinoColors.white;
+  static const Color primary = Color(0xFF14522E); // Primary color
+  static const Color primaryForeground =
+      Color(0xFFFFFFFF); // Primary text color
 
   // Secondary Colors
-  static const Color secondary = CupertinoColors.systemGrey;
-  static const Color secondaryForeground = CupertinoColors.white;
+  static const Color secondary = Color(0xFF1C3229); // Secondary color
+  static const Color secondaryForeground =
+      Color(0xFFFFFFFF); // Secondary text color
+
+  // Muted Colors
+  static const Color muted = Color(0xFF253D30); // Muted background color
+  static const Color mutedForeground = Color(0xFFA1A5A3); // Muted text color
+
+  // Accent Colors
+  static const Color accent = Color(0xFF263D2E); // Accent color
+  static const Color accentForeground = Color(0xFFF2F4F3); // Accent text color
 
   // Destructive Colors
-  static const Color destructive = CupertinoColors.destructiveRed;
-  static const Color destructiveForeground = CupertinoColors.white;
+  static const Color destructive =
+      Color(0xFFFF0000); // Destructive action color
+  static const Color destructiveForeground =
+      Color(0xFFFFFFFF); // Destructive text color
+
+  // Border Color
+  static const Color border = Color(0xFF59806B); // Border color
+
+  // Input Color
+  static const Color input = Color(0xFF59806B); // Input field background color
+
+  // Ring Color
+  static const Color ring = Color(0xFF14522E); // Focus ring color
 
   static const String googleMapStyle = '''[
   {

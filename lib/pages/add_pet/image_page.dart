@@ -8,11 +8,11 @@ class ImagePage extends StatefulWidget {
   final VoidCallback onBack;
 
   const ImagePage({
-    Key? key,
+    super.key,
     required this.petImageUrls,
     required this.onImageUrlsEntered,
     required this.onBack,
-  }) : super(key: key);
+  });
 
   @override
   _ImagePageState createState() => _ImagePageState();
