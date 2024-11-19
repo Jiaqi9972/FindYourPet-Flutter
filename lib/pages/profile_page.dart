@@ -150,22 +150,20 @@ class _ProfilePageState extends State<ProfilePage> {
                             )
                           : Text('Please login to get more', style: textStyle),
                       const SizedBox(height: 20),
-                      CupertinoSwitch(
-                        value: themeProvider.isDarkMode,
-                        onChanged: (bool value) {
-                          themeProvider.toggleTheme();
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      CupertinoButton(
-                        color: buttonColor,
-                        onPressed: themeProvider.toggleTheme,
-                        child: Text(
-                          themeProvider.isDarkMode
-                              ? 'Switch to Light Mode'
-                              : 'Switch to Dark Mode',
-                          style: TextStyle(color: buttonTextColor),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Dark Mode',
+                            style: textStyle,
+                          ),
+                          CupertinoSwitch(
+                            value: themeProvider.isDarkMode,
+                            onChanged: (bool value) {
+                              themeProvider.toggleTheme();
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 20),
                       user != null
