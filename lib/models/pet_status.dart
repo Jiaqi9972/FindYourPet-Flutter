@@ -1,5 +1,5 @@
 enum PetStatus {
-  all,
+  both,
   lost,
   found,
 }

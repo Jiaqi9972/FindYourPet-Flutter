@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:find_your_pet/api/api_service.dart';
 import 'package:find_your_pet/models/lost_pet.dart';
-import 'package:find_your_pet/pages/main/pet_detail_page.dart';
+import 'package:find_your_pet/pages/find/pet_detail_page.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -13,8 +13,6 @@ import 'package:find_your_pet/provider/theme_provider.dart';
 
 class PetMapView extends StatefulWidget {
   final Map<String, dynamic> filters;
-  // Removed the onMapPositionChanged callback since it's no longer needed
-  // final Function(double, double) onMapPositionChanged;
 
   final double initialLat;
   final double initialLng;

@@ -2,7 +2,7 @@
 import 'package:find_your_pet/api/api_service.dart';
 import 'package:find_your_pet/models/location_info.dart';
 import 'package:find_your_pet/models/lost_pet_detail.dart';
-import 'package:find_your_pet/pages/main/pet_detail_page.dart';
+import 'package:find_your_pet/pages/find/pet_detail_page.dart';
 import 'package:find_your_pet/widgets/pet_item_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

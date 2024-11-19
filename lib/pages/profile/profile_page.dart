@@ -161,6 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           CupertinoSwitch(
                             value: themeProvider.isDarkMode,
+                            activeColor: themeProvider.colors.primary,
                             onChanged: (bool value) {
                               themeProvider.toggleTheme();
                             },
