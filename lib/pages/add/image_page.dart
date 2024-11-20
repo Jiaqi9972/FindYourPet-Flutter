@@ -1,6 +1,11 @@
+import 'dart:io';
 import 'package:find_your_pet/provider/theme_provider.dart';
+import 'package:find_your_pet/utils/storage_utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 class ImagePage extends StatefulWidget {
   final List<String> petImageUrls;
@@ -19,27 +24,123 @@ class ImagePage extends StatefulWidget {
 }
 
 class _ImagePageState extends State<ImagePage> {
-  late TextEditingController _controller;
+  final ImagePicker _picker = ImagePicker();
+  List<File> _selectedImages = [];
+  List<String> _existingUrls = [];
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.petImageUrls.join(', '));
+    _existingUrls = List.from(widget.petImageUrls);
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920, // 最大宽度
+        maxHeight: 1080, // 最大高度
+        imageQuality: 85, // 压缩质量
+      );
+
+      if (image == null) return;
+
+      setState(() {
+        _selectedImages.add(File(image.path));
+      });
+    } catch (e) {
+      print('Error picking image: $e');
+      _showErrorDialog('Failed to pick image');
+    }
   }
 
-  void _handleNext() {
-    List<String> urls = _controller.text
-        .split(',')
-        .map((url) => url.trim())
-        .where((url) => url.isNotEmpty)
-        .toList();
-    widget.onImageUrlsEntered(urls);
+  String _getContentType(String filepath) {
+    String ext = path.extension(filepath).toLowerCase();
+    switch (ext) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.png':
+        return 'image/png';
+      case '.gif':
+        return 'image/gif';
+      case '.webp':
+        return 'image/webp';
+      case '.heic':
+        return 'image/heic';
+      default:
+        return 'image/jpeg'; // 默认类型
+    }
+  }
+
+  Future<void> _handleNext() async {
+    if (_selectedImages.isEmpty && _existingUrls.isEmpty) {
+      _showErrorDialog('Please select at least one image');
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      List<String> newUrls = [];
+
+      // 上传新选择的图片
+      for (File imageFile in _selectedImages) {
+        final String ext = path.extension(imageFile.path);
+        final String fileName = 'pets/${const Uuid().v4()}$ext';
+
+        final String downloadUrl = await StorageService.uploadFile(
+          path: fileName,
+          data: await imageFile.readAsBytes(),
+          contentType: _getContentType(imageFile.path),
+          metadata: {
+            'uploadTime': DateTime.now().toIso8601String(),
+            'originalName': path.basename(imageFile.path),
+          },
+        );
+
+        newUrls.add(downloadUrl);
+      }
+
+      // 合并现有URL和新URL
+      final List<String> allUrls = [..._existingUrls, ...newUrls];
+      widget.onImageUrlsEntered(allUrls);
+    } catch (e) {
+      print('Upload error: $e');
+      _showErrorDialog('Failed to upload images: $e');
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  void _removeImage(int index, bool isExisting) {
+    setState(() {
+      if (isExisting) {
+        _existingUrls.removeAt(index);
+      } else {
+        _selectedImages.removeAt(index - _existingUrls.length);
+      }
+    });
+  }
+
+  void _showErrorDialog(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -57,36 +158,102 @@ class _ImagePageState extends State<ImagePage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 40),
-        CupertinoTextField(
-          controller: _controller,
-          placeholder: 'Pet Image URLs (comma-separated)',
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: theme.isDarkMode
-                ? CupertinoColors.systemGrey6.darkColor
-                : CupertinoColors.systemGrey6.color,
-            borderRadius: BorderRadius.circular(8),
+        const SizedBox(height: 20),
+        if (_selectedImages.isEmpty && _existingUrls.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Text(
+              'Please select at least one image',
+              style: textStyle.copyWith(color: CupertinoColors.systemGrey),
+            ),
           ),
-          style: textStyle,
-          placeholderStyle: textStyle.copyWith(
-            color: theme.isDarkMode
-                ? CupertinoColors.systemGrey.darkColor
-                : CupertinoColors.systemGrey,
+        CupertinoButton(
+          color: theme.getAppTheme().primaryColor,
+          onPressed: _isUploading ? null : _pickImage,
+          child: const Text('Select Image'),
+        ),
+        const SizedBox(height: 20),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.all(8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: _existingUrls.length + _selectedImages.length,
+            itemBuilder: (context, index) {
+              final bool isExisting = index < _existingUrls.length;
+
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: isExisting
+                        ? Image.network(
+                            _existingUrls[index],
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: CupertinoColors.systemGrey6,
+                                child: const Icon(CupertinoIcons.photo),
+                              );
+                            },
+                          )
+                        : Image.file(
+                            _selectedImages[index - _existingUrls.length],
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                  if (!_isUploading)
+                    Positioned(
+                      top: 5,
+                      right: 5,
+                      child: GestureDetector(
+                        onTap: () => _removeImage(
+                          index,
+                          isExisting,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.black.withOpacity(0.7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.delete,
+                            color: CupertinoColors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
-        const SizedBox(height: 40),
+        if (_isUploading)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: CupertinoActivityIndicator(),
+          ),
+        const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             CupertinoButton(
               color: theme.getAppTheme().primaryColor.withOpacity(0.8),
-              onPressed: widget.onBack,
+              onPressed: _isUploading ? null : widget.onBack,
               child: const Text('Back'),
             ),
             CupertinoButton(
               color: theme.getAppTheme().primaryColor,
-              onPressed: _handleNext,
+              onPressed: (_selectedImages.isEmpty && _existingUrls.isEmpty) ||
+                      _isUploading
+                  ? null
+                  : _handleNext,
               child: const Text('Next'),
             ),
           ],

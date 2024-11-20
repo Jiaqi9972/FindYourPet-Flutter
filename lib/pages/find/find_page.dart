@@ -1,5 +1,6 @@
 // lib/pages/main/find_page.dart
 
+import 'package:find_your_pet/widgets/find/map/pet_map_view.dart';
 import 'package:find_your_pet/widgets/find/view_mode_switcher.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +12,6 @@ import 'package:find_your_pet/provider/location_provider.dart';
 import 'package:find_your_pet/widgets/find/list/list_view_header.dart';
 import 'package:find_your_pet/widgets/find/map/map_view_header.dart';
 import 'package:find_your_pet/widgets/find/list/pet_list_view.dart';
-import 'package:find_your_pet/widgets/find/map/pet_map_view.dart';
 
 class FindPage extends StatefulWidget {
   const FindPage({super.key});

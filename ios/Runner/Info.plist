@@ -59,5 +59,12 @@
         <key>FindPetsNearby</key>
         <string>Need precise location to help find pets in your immediate vicinity.</string>
     </dict>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to upload pet images.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to take pet images.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to your microphone for video or audio recording.</string>
+
 </dict>
 </plist>
