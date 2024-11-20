@@ -1,7 +1,4 @@
-// lib/widgets/main/pet_map_view.dart
-
 import 'dart:math';
-
 import 'package:find_your_pet/api/api_service.dart';
 import 'package:find_your_pet/models/lost_pet.dart';
 import 'package:find_your_pet/pages/find/pet_detail_page.dart';
@@ -13,17 +10,15 @@ import 'package:find_your_pet/provider/theme_provider.dart';
 
 class PetMapView extends StatefulWidget {
   final Map<String, dynamic> filters;
-
   final double initialLat;
   final double initialLng;
 
   const PetMapView({
-    Key? key,
+    super.key,
     required this.filters,
-    // required this.onMapPositionChanged,
     required this.initialLat,
     required this.initialLng,
-  }) : super(key: key);
+  });
 
   @override
   _PetMapViewState createState() => _PetMapViewState();
@@ -53,7 +48,6 @@ class _PetMapViewState extends State<PetMapView> {
       _fetchAndDisplayPets();
     }
 
-    // Only recenter the map if the initial coordinates changed significantly
     if (_coordinatesChangedDueToAddressInput(
       oldWidget.initialLat,
       widget.initialLat,
@@ -67,14 +61,13 @@ class _PetMapViewState extends State<PetMapView> {
     }
   }
 
-  // Helper method to check if coordinates changed significantly
   bool _coordinatesChangedDueToAddressInput(
     double oldLat,
     double newLat,
     double oldLng,
     double newLng,
   ) {
-    const threshold = 0.0001; // Adjust threshold as needed
+    const threshold = 0.0001;
     return (oldLat - newLat).abs() > threshold ||
         (oldLng - newLng).abs() > threshold;
   }
@@ -113,20 +106,20 @@ class _PetMapViewState extends State<PetMapView> {
     return Marker(
       markerId: MarkerId(pet.id),
       position: LatLng(pet.latitude, pet.longitude),
-      infoWindow: InfoWindow(
-        title: pet.name,
-        snippet: pet.lost ? 'Lost' : 'Found',
-        onTap: () => _openPetDetail(pet.id),
-      ),
+      // 移除 infoWindow
+      infoWindow: InfoWindow.noText,
       icon: BitmapDescriptor.defaultMarkerWithHue(
         pet.lost ? BitmapDescriptor.hueRed : BitmapDescriptor.hueGreen,
       ),
+      // 直接在 onTap 中处理点击事件
+      onTap: () => _openPetDetail(pet.id),
     );
   }
 
   void _showError(String message) {
     if (!mounted) return;
     final theme = context.read<ThemeProvider>();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       showCupertinoDialog(
@@ -155,12 +148,7 @@ class _PetMapViewState extends State<PetMapView> {
   }
 
   void _openPetDetail(String petId) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => PetDetailPage(petId: petId),
-      ),
-    );
+    PetDetailPage.show(context, petId);
   }
 
   void _onCameraIdle() {
@@ -170,8 +158,6 @@ class _PetMapViewState extends State<PetMapView> {
           (bounds.northeast.latitude + bounds.southwest.latitude) / 2;
       double centerLng =
           (bounds.northeast.longitude + bounds.southwest.longitude) / 2;
-
-      // Calculate radius in miles
       double radiusInMiles = _calculateRadiusInMiles(bounds);
 
       setState(() {
@@ -180,10 +166,7 @@ class _PetMapViewState extends State<PetMapView> {
         _currentRadiusInMiles = radiusInMiles;
       });
 
-      // Remove the call to widget.onMapPositionChanged
-      // widget.onMapPositionChanged(centerLat, centerLng);
-
-      _fetchAndDisplayPets(); // Fetch pets for the new map center
+      _fetchAndDisplayPets();
     });
   }
 
@@ -191,7 +174,6 @@ class _PetMapViewState extends State<PetMapView> {
     final northeast = bounds.northeast;
     final southwest = bounds.southwest;
 
-    // Calculate the diagonal distance between northeast and southwest corners
     final distanceInMeters = _distanceBetween(
       northeast.latitude,
       northeast.longitude,
@@ -199,11 +181,7 @@ class _PetMapViewState extends State<PetMapView> {
       southwest.longitude,
     );
 
-    // Convert meters to miles (1 mile = 1609.34 meters)
-    final distanceInMiles = distanceInMeters / 1609.34;
-
-    // Radius is half the diagonal distance
-    return distanceInMiles / 2;
+    return (distanceInMeters / 1609.34) / 2;
   }
 
   double _distanceBetween(double lat1, double lon1, double lat2, double lon2) {
@@ -247,7 +225,6 @@ class _PetMapViewState extends State<PetMapView> {
           mapToolbarEnabled: false,
           zoomControlsEnabled: false,
         ),
-        // Zoom controls
         Positioned(
           right: 16,
           bottom: 100,

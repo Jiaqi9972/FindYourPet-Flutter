@@ -4,6 +4,7 @@ import 'package:find_your_pet/pages/profile/complete_profile_page.dart';
 import 'package:find_your_pet/pages/profile/profile_page.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:find_your_pet/pages/profile/login_page.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
@@ -16,6 +17,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  print('Firebase initialized');
+  print('Storage bucket: ${FirebaseStorage.instance.bucket}');
 
   runApp(
     MultiProvider(

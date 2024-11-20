@@ -134,12 +134,7 @@ class _PetListViewState extends State<PetListView> {
   }
 
   void _openPetDetail(String petId) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => PetDetailPage(petId: petId),
-      ),
-    );
+    PetDetailPage.show(context, petId);
   }
 
   Widget _buildLoadingIndicator() {
@@ -229,9 +224,68 @@ class _PetListViewState extends State<PetListView> {
           itemCount: _pets.length + (_hasMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index < _pets.length) {
-              return PetItemWidget(
-                pet: _pets[index],
-                onTap: () => _openPetDetail(_pets[index].id),
+              final pet = _pets[index];
+              final imageUrl =
+                  pet.petImageUrls.isNotEmpty ? pet.petImageUrls.first : null;
+
+              return Card(
+                elevation: 4,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: theme.colors.card,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: InkWell(
+                  onTap: () => _openPetDetail(pet.id),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Display the first image or a placeholder
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                        child: imageUrl != null
+                            ? Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                height: 200,
+                                width: double.infinity,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return _buildImagePlaceholder(theme);
+                                },
+                              )
+                            : _buildImagePlaceholder(theme),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              pet.name,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colors.cardForeground,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              pet.description,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: theme.colors.secondaryForeground,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             } else if (_hasMore) {
               return _buildLoadingIndicator();
@@ -239,6 +293,18 @@ class _PetListViewState extends State<PetListView> {
             return null;
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildImagePlaceholder(ThemeProvider theme) {
+    return Container(
+      height: 200,
+      color: theme.colors.muted,
+      child: Icon(
+        CupertinoIcons.photo,
+        size: 48,
+        color: theme.colors.mutedForeground,
       ),
     );
   }
