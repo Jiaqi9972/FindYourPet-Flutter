@@ -109,7 +109,7 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
 
     return Column(
       children: [
-        Container(
+        SizedBox(
           height: 200,
           child: PageView.builder(
             controller: _pageController,
