@@ -25,7 +25,7 @@ class ImagePage extends StatefulWidget {
 
 class _ImagePageState extends State<ImagePage> {
   final ImagePicker _picker = ImagePicker();
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
   List<String> _existingUrls = [];
   bool _isUploading = false;
 
