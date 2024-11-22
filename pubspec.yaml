@@ -78,6 +78,8 @@ flutter:
   assets:
     - assets/images/lost_pin.png
     - assets/images/found_pin.png
+    - assets/images/pin.png
+    - assets/images/poster.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
