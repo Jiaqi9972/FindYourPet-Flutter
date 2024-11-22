@@ -1,5 +1,6 @@
 import 'package:find_your_pet/firebase_options.dart';
 import 'package:find_your_pet/layout/main_layout.dart';
+import 'package:find_your_pet/splash_screen.dart';
 import 'package:find_your_pet/pages/profile/complete_profile_page.dart';
 import 'package:find_your_pet/pages/profile/profile_page.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
@@ -55,7 +56,7 @@ class MyApp extends StatelessWidget {
             '/main': (context) => const MainLayout(),
             '/profile': (context) => const ProfilePage()
           },
-          home: const MainLayout(),
+          home: const SplashScreen(),
         );
       },
     );
