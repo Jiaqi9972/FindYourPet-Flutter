@@ -1,31 +1,29 @@
-import 'package:find_your_pet/firebase_options.dart';
-import 'package:find_your_pet/layout/main_layout.dart';
+import 'package:find_your_pet/layout/main_tab_screen.dart';
 import 'package:find_your_pet/pages/profile/complete_profile_page.dart';
-import 'package:find_your_pet/pages/profile/profile_page.dart';
+import 'package:find_your_pet/pages/profile/login.dart';
+import 'package:find_your_pet/pages/profile/register.dart';
+import 'package:find_your_pet/pages/splush/splush.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:find_your_pet/pages/profile/login_page.dart';
+import 'package:find_your_pet/provider/pet_status_provider.dart';
+import 'package:find_your_pet/provider/view_provider.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  print('Firebase initialized');
-  print('Storage bucket: ${FirebaseStorage.instance.bucket}');
+  await Firebase.initializeApp();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocationProvider()),
+        ChangeNotifierProvider(create: (_) => ViewModeProvider()),
+        ChangeNotifierProvider(create: (_) => PetStatusProvider()),
       ],
       child: const MyApp(),
     ),
@@ -48,14 +46,19 @@ class MyApp extends StatelessWidget {
           supportedLocales: const [
             Locale('en', 'US'),
           ],
-          theme: themeProvider.getAppTheme(),
           routes: {
+            '/': (context) => const SplashScreen(),
+            '/main': (context) => const MainTabScreen(),
             '/login': (context) => const LoginPage(),
+            '/register': (context) => const RegisterPage(),
             '/complete_profile': (context) => const CompleteProfilePage(),
-            '/main': (context) => const MainLayout(),
-            '/profile': (context) => const ProfilePage()
           },
-          home: const MainLayout(),
+          builder: (context, child) {
+            // Wrap all pages with error handling
+            return CupertinoPageScaffold(
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
         );
       },
     );

@@ -1,3 +1,6 @@
+import 'package:find_your_pet/styles/color/color.dart';
+import 'package:find_your_pet/styles/color/color_dark.dart';
+import 'package:find_your_pet/styles/ui/card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_place/google_place.dart';
 import 'dart:async';
@@ -6,18 +9,14 @@ class CupertinoAddressAutocomplete extends StatefulWidget {
   final TextEditingController controller;
   final String apiKey;
   final Function(double lat, double lng, String address) onLocationSelected;
-  final TextStyle? textStyle;
-  final Color backgroundColor;
-  final Color? clearButtonColor;
+  final bool isDarkMode;
 
   const CupertinoAddressAutocomplete({
     super.key,
     required this.controller,
     required this.apiKey,
     required this.onLocationSelected,
-    this.textStyle,
-    required this.backgroundColor,
-    this.clearButtonColor,
+    required this.isDarkMode,
   });
 
   @override
@@ -45,6 +44,12 @@ class _CupertinoAddressAutocompleteState
     _debounce?.cancel();
     _hideOverlay();
     super.dispose();
+  }
+
+  void _showOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
   }
 
   Future<void> _autoCompleteSearch(String value) async {
@@ -77,12 +82,6 @@ class _CupertinoAddressAutocompleteState
         setState(() => isLoading = false);
       }
     }
-  }
-
-  void _showOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
   }
 
   void _hideOverlay() {
@@ -118,13 +117,10 @@ class _CupertinoAddressAutocompleteState
           link: _layerLink,
           showWhenUnlinked: false,
           offset: Offset(0.0, size.height + 5),
-          child: CupertinoPopupSurface(
-            child: Container(
+          child: AppCard(
+            isDarkMode: widget.isDarkMode,
+            content: Container(
               constraints: const BoxConstraints(maxHeight: 200),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: widget.backgroundColor,
-              ),
               child: ListView.builder(
                 padding: EdgeInsets.zero,
                 shrinkWrap: true,
@@ -140,14 +136,20 @@ class _CupertinoAddressAutocompleteState
                         border: index > 0
                             ? Border(
                                 top: BorderSide(
-                                color:
-                                    CupertinoColors.separator.withOpacity(0.2),
-                              ))
+                                  color: widget.isDarkMode
+                                      ? AppColorsDark.border
+                                      : AppColors.border,
+                                ),
+                              )
                             : null,
                       ),
                       child: Text(
                         prediction.description ?? '',
-                        style: widget.textStyle,
+                        style: TextStyle(
+                          color: widget.isDarkMode
+                              ? AppColorsDark.foreground
+                              : AppColors.foreground,
+                        ),
                       ),
                     ),
                   );
@@ -166,19 +168,25 @@ class _CupertinoAddressAutocompleteState
       link: _layerLink,
       child: CupertinoTextField(
         controller: widget.controller,
-        style: widget.textStyle,
         placeholder: 'Select Location',
-        placeholderStyle: widget.textStyle?.copyWith(
-          color: widget.textStyle?.color?.withOpacity(0.5),
+        style: TextStyle(
+          color: widget.isDarkMode
+              ? AppColorsDark.foreground
+              : AppColors.foreground,
+        ),
+        placeholderStyle: TextStyle(
+          color: widget.isDarkMode
+              ? AppColorsDark.mutedForeground
+              : AppColors.mutedForeground,
         ),
         decoration: BoxDecoration(
-          color: widget.backgroundColor,
+          color: widget.isDarkMode ? AppColorsDark.input : AppColors.input,
+          border: Border.all(
+            color: widget.isDarkMode ? AppColorsDark.border : AppColors.border,
+          ),
           borderRadius: BorderRadius.circular(8),
         ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         onChanged: (value) {
           if (_debounce?.isActive ?? false) _debounce!.cancel();
           _debounce = Timer(
@@ -187,13 +195,19 @@ class _CupertinoAddressAutocompleteState
           );
         },
         suffix: isLoading
-            ? const CupertinoActivityIndicator()
+            ? CupertinoActivityIndicator(
+                color: widget.isDarkMode
+                    ? AppColorsDark.primary
+                    : AppColors.primary,
+              )
             : widget.controller.text.isNotEmpty
                 ? CupertinoButton(
                     padding: const EdgeInsets.only(right: 8),
                     child: Icon(
                       CupertinoIcons.clear_circled_solid,
-                      color: widget.clearButtonColor,
+                      color: widget.isDarkMode
+                          ? AppColorsDark.primary
+                          : AppColors.primary,
                       size: 20,
                     ),
                     onPressed: () {

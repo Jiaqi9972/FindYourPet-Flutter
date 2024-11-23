@@ -1,21 +1,22 @@
 // lib/widgets/main/pet_list_view.dart
 import 'package:find_your_pet/api/api_service.dart';
-import 'package:find_your_pet/models/location_info.dart';
+import 'package:find_your_pet/models/list_location_info.dart';
 import 'package:find_your_pet/models/lost_pet_detail.dart';
 import 'package:find_your_pet/pages/find/pet_detail_page.dart';
+import 'package:find_your_pet/styles/color/app_colors_config.dart';
+import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:find_your_pet/provider/theme_provider.dart';
 
 class PetListView extends StatefulWidget {
   final Map<String, dynamic> filters;
-  final LocationInfo? locationInfo;
+  final ListLocationInfo? listlocationInfo;
 
   const PetListView({
     super.key,
     required this.filters,
-    required this.locationInfo,
+    required this.listlocationInfo,
   });
 
   @override
@@ -34,7 +35,7 @@ class _PetListViewState extends State<PetListView> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    if (widget.locationInfo != null) {
+    if (widget.listlocationInfo != null) {
       _fetchPets();
     }
   }
@@ -49,7 +50,7 @@ class _PetListViewState extends State<PetListView> {
   void didUpdateWidget(PetListView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.filters != oldWidget.filters ||
-        widget.locationInfo != oldWidget.locationInfo) {
+        widget.listlocationInfo != oldWidget.listlocationInfo) {
       _resetAndRefetch();
     }
   }
@@ -71,7 +72,7 @@ class _PetListViewState extends State<PetListView> {
   }
 
   Future<void> _fetchPets() async {
-    if (_isLoading || !_hasMore || widget.locationInfo == null) return;
+    if (_isLoading || !_hasMore || widget.listlocationInfo == null) return;
 
     setState(() {
       _isLoading = true;
@@ -79,8 +80,8 @@ class _PetListViewState extends State<PetListView> {
 
     try {
       var pageData = await _apiService.fetchLostPetsWithPagination(
-        widget.locationInfo!.latitude,
-        widget.locationInfo!.longitude,
+        widget.listlocationInfo!.latitude,
+        widget.listlocationInfo!.longitude,
         widget.filters['radiusInMiles'],
         _currentPage,
         10,
@@ -107,23 +108,25 @@ class _PetListViewState extends State<PetListView> {
   }
 
   void _showError(String message) {
-    final theme = context.read<ThemeProvider>();
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
+
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
         title: Text(
           'Error',
-          style: TextStyle(color: theme.colors.destructive),
+          style: TextStyle(color: colors.destructive),
         ),
         content: Text(
           message,
-          style: TextStyle(color: theme.colors.foreground),
+          style: TextStyle(color: colors.foreground),
         ),
         actions: [
           CupertinoDialogAction(
             child: Text(
               'OK',
-              style: TextStyle(color: theme.colors.foreground),
+              style: TextStyle(color: colors.foreground),
             ),
             onPressed: () => Navigator.pop(context),
           ),
@@ -137,20 +140,23 @@ class _PetListViewState extends State<PetListView> {
   }
 
   Widget _buildLoadingIndicator() {
-    final theme = context.read<ThemeProvider>();
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Center(
         child: CupertinoActivityIndicator(
-          color: theme.colors.accentForeground,
+          color: colors.accentForeground,
         ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    final theme = context.watch<ThemeProvider>();
-    final themeData = theme.getAppTheme();
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -158,18 +164,24 @@ class _PetListViewState extends State<PetListView> {
           Icon(
             CupertinoIcons.paw,
             size: 48,
-            color: theme.colors.foreground,
+            color: colors.foreground,
           ),
           const SizedBox(height: 16),
           Text(
             'No pets found nearby',
-            style: themeData.textTheme.navTitleTextStyle,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: colors.foreground,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Try adjusting your filters or location',
-            style: themeData.textTheme.textStyle.copyWith(
-              color: theme.colors.secondaryForeground,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: colors.foreground,
             ),
           ),
         ],
@@ -179,9 +191,10 @@ class _PetListViewState extends State<PetListView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
 
-    if (widget.locationInfo == null) {
+    if (widget.listlocationInfo == null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -189,19 +202,25 @@ class _PetListViewState extends State<PetListView> {
             Icon(
               CupertinoIcons.location_slash,
               size: 48,
-              color: theme.colors.foreground,
+              color: colors.foreground,
             ),
             const SizedBox(height: 16),
             Text(
               'Location Required',
-              style: theme.getAppTheme().textTheme.navTitleTextStyle,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: colors.foreground,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Please select a location to find pets',
-              style: theme.getAppTheme().textTheme.textStyle.copyWith(
-                    color: theme.colors.secondaryForeground,
-                  ),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: colors.foreground,
+              ),
             ),
           ],
         ),
@@ -213,12 +232,14 @@ class _PetListViewState extends State<PetListView> {
     }
 
     return CupertinoScrollbar(
+      controller: _scrollController, // 绑定 ScrollController
+      thumbVisibility: true, // 可选：显示滚动条
       child: RefreshIndicator(
         onRefresh: () async {
           _resetAndRefetch();
         },
         child: ListView.builder(
-          controller: _scrollController,
+          controller: _scrollController, // 绑定相同的 ScrollController
           physics: const AlwaysScrollableScrollPhysics(),
           itemCount: _pets.length + (_hasMore ? 1 : 0),
           itemBuilder: (context, index) {
@@ -230,7 +251,7 @@ class _PetListViewState extends State<PetListView> {
               return Card(
                 elevation: 4,
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: theme.colors.card,
+                color: colors.background,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -251,30 +272,61 @@ class _PetListViewState extends State<PetListView> {
                                 height: 200,
                                 width: double.infinity,
                                 errorBuilder: (context, error, stackTrace) {
-                                  return _buildImagePlaceholder(theme);
+                                  return _buildImagePlaceholder();
                                 },
                               )
-                            : _buildImagePlaceholder(theme),
+                            : _buildImagePlaceholder(),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              pet.name,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colors.cardForeground,
-                              ),
+                            Row(
+                              children: [
+                                // Name aligned to the left
+                                Expanded(
+                                  child: Text(
+                                    pet.name,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: colors.foreground,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                // Spacer to push the badge to the right
+                                const Spacer(),
+                                // Badge aligned to the right
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: pet.lost
+                                        ? colors.destructive
+                                        : colors.primary,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    pet.lost ? 'Lost' : 'Found',
+                                    style: TextStyle(
+                                      color: pet.lost
+                                          ? colors.destructiveForeground
+                                          : colors.primaryForeground,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 8),
                             Text(
                               pet.description,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: theme.colors.secondaryForeground,
+                                color: colors.secondaryForeground,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -296,14 +348,17 @@ class _PetListViewState extends State<PetListView> {
     );
   }
 
-  Widget _buildImagePlaceholder(ThemeProvider theme) {
+  Widget _buildImagePlaceholder() {
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
+
     return Container(
       height: 200,
-      color: theme.colors.muted,
+      color: colors.muted,
       child: Icon(
         CupertinoIcons.photo,
         size: 48,
-        color: theme.colors.mutedForeground,
+        color: colors.mutedForeground,
       ),
     );
   }

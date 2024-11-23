@@ -1,12 +1,16 @@
 import 'dart:math';
 import 'package:find_your_pet/api/api_service.dart';
 import 'package:find_your_pet/models/lost_pet.dart';
+import 'package:find_your_pet/models/map_location_info.dart';
 import 'package:find_your_pet/pages/find/pet_detail_page.dart';
+import 'package:find_your_pet/provider/location_provider.dart';
+import 'package:find_your_pet/styles/color/app_colors_config.dart';
+import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:find_your_pet/provider/theme_provider.dart';
 
 class PetMapView extends StatefulWidget {
   final Map<String, dynamic> filters;
@@ -14,11 +18,11 @@ class PetMapView extends StatefulWidget {
   final double initialLng;
 
   const PetMapView({
-    super.key,
+    Key? key,
     required this.filters,
     required this.initialLat,
     required this.initialLng,
-  });
+  }) : super(key: key);
 
   @override
   _PetMapViewState createState() => _PetMapViewState();
@@ -28,10 +32,11 @@ class _PetMapViewState extends State<PetMapView> {
   final ApiService _apiService = ApiService();
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
+  bool _hasMarkers = false;
+  bool _needsUpdate = false;
 
   late double _mapCenterLat;
   late double _mapCenterLng;
-  double _currentRadiusInMiles = 5.0;
 
   @override
   void initState() {
@@ -41,64 +46,109 @@ class _PetMapViewState extends State<PetMapView> {
   }
 
   @override
-  void didUpdateWidget(PetMapView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (widget.filters['lost'] != oldWidget.filters['lost']) {
-      _fetchAndDisplayPets();
-    }
-
-    if (_coordinatesChangedDueToAddressInput(
-      oldWidget.initialLat,
-      widget.initialLat,
-      oldWidget.initialLng,
-      widget.initialLng,
-    )) {
-      _mapCenterLat = widget.initialLat;
-      _mapCenterLng = widget.initialLng;
-      _moveMapToCenter();
-      _fetchAndDisplayPets();
-    }
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 
-  bool _coordinatesChangedDueToAddressInput(
-    double oldLat,
-    double newLat,
-    double oldLng,
-    double newLng,
-  ) {
-    const threshold = 0.0001;
-    return (oldLat - newLat).abs() > threshold ||
-        (oldLng - newLng).abs() > threshold;
+  void _onCameraIdle() {
+    if (_mapController == null || !mounted) return;
+
+    _mapController!.getVisibleRegion().then((bounds) async {
+      if (!mounted) return;
+
+      double centerLat =
+          (bounds.northeast.latitude + bounds.southwest.latitude) / 2;
+      double centerLng =
+          (bounds.northeast.longitude + bounds.southwest.longitude) / 2;
+      double radiusInMiles = _calculateRadiusInMiles(bounds);
+
+      if (_shouldUpdateLocation(centerLat, centerLng)) {
+        _mapCenterLat = centerLat;
+        _mapCenterLng = centerLng;
+
+        try {
+          List<Placemark> placemarks =
+              await placemarkFromCoordinates(centerLat, centerLng);
+          if (!mounted) return;
+
+          if (placemarks.isNotEmpty) {
+            final placemark = placemarks.first;
+            context.read<LocationProvider>().updateMapLocation(
+                  MapLocationInfo(
+                    latitude: centerLat,
+                    longitude: centerLng,
+                    displayName: _formatAddress(placemark),
+                    radiusInMiles: radiusInMiles,
+                  ),
+                );
+          }
+        } catch (e) {
+          print('Error retrieving address: $e');
+        }
+
+        _needsUpdate = true;
+        _fetchAndDisplayPets();
+      }
+    });
   }
 
-  void _moveMapToCenter() {
-    if (_mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLng(
-          LatLng(_mapCenterLat, _mapCenterLng),
-        ),
-      );
-    }
+  bool _shouldUpdateLocation(double newLat, double newLng) {
+    const threshold = 0.01;
+    return (_mapCenterLat - newLat).abs() > threshold ||
+        (_mapCenterLng - newLng).abs() > threshold;
+  }
+
+  String _formatAddress(Placemark placemark) {
+    final List<String> components = [];
+    if (placemark.locality?.isNotEmpty ?? false)
+      components.add(placemark.locality!);
+    if (placemark.administrativeArea?.isNotEmpty ?? false)
+      components.add(placemark.administrativeArea!);
+    return components.join(", ");
   }
 
   Future<void> _fetchAndDisplayPets() async {
+    if (!mounted || !_needsUpdate) return;
+    _needsUpdate = false;
+
     try {
-      var pets = await _apiService.fetchLostPetsForMap(
+      final pets = await _apiService.fetchLostPetsForMap(
         _mapCenterLat,
         _mapCenterLng,
-        _currentRadiusInMiles,
+        widget.filters['radiusInMiles'] ?? 5.0,
         widget.filters['lost'],
       );
 
       if (!mounted) return;
 
       setState(() {
-        _markers = pets.map((pet) => _createMarker(pet)).toSet();
+        _markers = pets.map(_createMarker).toSet();
+        _hasMarkers = _markers.isNotEmpty;
       });
     } catch (e) {
-      print('Error fetching pets for map: $e');
-      _showError('Failed to load pets');
+      print('Error fetching pets: $e');
+    }
+  }
+
+  @override
+  void didUpdateWidget(PetMapView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.initialLat != widget.initialLat ||
+        oldWidget.initialLng != widget.initialLng) {
+      _mapCenterLat = widget.initialLat;
+      _mapCenterLng = widget.initialLng;
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLng(LatLng(_mapCenterLat, _mapCenterLng)),
+      );
+    }
+
+    if (oldWidget.filters != widget.filters ||
+        oldWidget.initialLat != widget.initialLat ||
+        oldWidget.initialLng != widget.initialLng) {
+      _needsUpdate = true;
+      _fetchAndDisplayPets();
     }
   }
 
@@ -106,86 +156,25 @@ class _PetMapViewState extends State<PetMapView> {
     return Marker(
       markerId: MarkerId(pet.id),
       position: LatLng(pet.latitude, pet.longitude),
-      // 移除 infoWindow
-      infoWindow: InfoWindow.noText,
       icon: BitmapDescriptor.defaultMarkerWithHue(
         pet.lost ? BitmapDescriptor.hueRed : BitmapDescriptor.hueGreen,
       ),
-      // 直接在 onTap 中处理点击事件
-      onTap: () => _openPetDetail(pet.id),
+      onTap: () => PetDetailPage.show(context, pet.id),
     );
-  }
-
-  void _showError(String message) {
-    if (!mounted) return;
-    final theme = context.read<ThemeProvider>();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      showCupertinoDialog(
-        context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: Text(
-            'Error',
-            style: TextStyle(color: theme.colors.destructive),
-          ),
-          content: Text(
-            message,
-            style: TextStyle(color: theme.colors.foreground),
-          ),
-          actions: [
-            CupertinoDialogAction(
-              child: Text(
-                'OK',
-                style: TextStyle(color: theme.colors.foreground),
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
-  void _openPetDetail(String petId) {
-    PetDetailPage.show(context, petId);
-  }
-
-  void _onCameraIdle() {
-    if (_mapController == null) return;
-    _mapController!.getVisibleRegion().then((bounds) {
-      double centerLat =
-          (bounds.northeast.latitude + bounds.southwest.latitude) / 2;
-      double centerLng =
-          (bounds.northeast.longitude + bounds.southwest.longitude) / 2;
-      double radiusInMiles = _calculateRadiusInMiles(bounds);
-
-      setState(() {
-        _mapCenterLat = centerLat;
-        _mapCenterLng = centerLng;
-        _currentRadiusInMiles = radiusInMiles;
-      });
-
-      _fetchAndDisplayPets();
-    });
   }
 
   double _calculateRadiusInMiles(LatLngBounds bounds) {
-    final northeast = bounds.northeast;
-    final southwest = bounds.southwest;
-
     final distanceInMeters = _distanceBetween(
-      northeast.latitude,
-      northeast.longitude,
-      southwest.latitude,
-      southwest.longitude,
+      bounds.northeast.latitude,
+      bounds.northeast.longitude,
+      bounds.southwest.latitude,
+      bounds.southwest.longitude,
     );
-
     return (distanceInMeters / 1609.34) / 2;
   }
 
   double _distanceBetween(double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371000; // Earth radius in meters
+    const R = 6371000; // Earth's radius in meters
     final dLat = _degToRad(lat2 - lat1);
     final dLon = _degToRad(lon2 - lon1);
     final a = sin(dLat / 2) * sin(dLat / 2) +
@@ -197,15 +186,10 @@ class _PetMapViewState extends State<PetMapView> {
     return R * c;
   }
 
-  double _degToRad(double deg) {
-    return deg * (pi / 180);
-  }
+  double _degToRad(double deg) => deg * (pi / 180);
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
-    final mapStyle = theme.getGoogleMapStyle();
-
     return Stack(
       children: [
         GoogleMap(
@@ -215,7 +199,10 @@ class _PetMapViewState extends State<PetMapView> {
           ),
           onMapCreated: (controller) {
             _mapController = controller;
-            _mapController?.setMapStyle(mapStyle);
+            final isDarkMode = context.read<ThemeProvider>().isDarkMode;
+            final colors = AppColorsConfig.getTheme(isDarkMode);
+            controller.setMapStyle(colors.googleMapStyle);
+            _needsUpdate = true;
             _fetchAndDisplayPets();
           },
           markers: _markers,
@@ -225,6 +212,29 @@ class _PetMapViewState extends State<PetMapView> {
           mapToolbarEnabled: false,
           zoomControlsEnabled: false,
         ),
+        if (!_hasMarkers)
+          Positioned(
+            top: 120,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'No pets found in this area',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+          ),
         Positioned(
           right: 16,
           bottom: 100,
@@ -233,11 +243,7 @@ class _PetMapViewState extends State<PetMapView> {
               FloatingActionButton(
                 mini: true,
                 heroTag: 'zoom_in',
-                backgroundColor: theme.colors.accent,
-                child: Icon(
-                  CupertinoIcons.plus,
-                  color: theme.colors.accentForeground,
-                ),
+                child: const Icon(CupertinoIcons.plus),
                 onPressed: () {
                   _mapController?.animateCamera(CameraUpdate.zoomIn());
                 },
@@ -246,11 +252,7 @@ class _PetMapViewState extends State<PetMapView> {
               FloatingActionButton(
                 mini: true,
                 heroTag: 'zoom_out',
-                backgroundColor: theme.colors.accent,
-                child: Icon(
-                  CupertinoIcons.minus,
-                  color: theme.colors.accentForeground,
-                ),
+                child: const Icon(CupertinoIcons.minus),
                 onPressed: () {
                   _mapController?.animateCamera(CameraUpdate.zoomOut());
                 },
