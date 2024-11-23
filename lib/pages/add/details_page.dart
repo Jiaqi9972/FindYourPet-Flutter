@@ -1,7 +1,8 @@
 import 'package:find_your_pet/pages/add/cupertino_autocomplete_address.dart';
+import 'package:find_your_pet/styles/color/app_colors_config.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
-import 'package:find_your_pet/utils/color.dart';
-import 'package:find_your_pet/utils/color_dark.dart';
+import 'package:find_your_pet/styles/ui/button.dart';
+import 'package:find_your_pet/styles/ui/input.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
@@ -137,119 +138,92 @@ class _DetailsPageState extends State<DetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
-    final textStyle = theme.getAppTheme().textTheme.textStyle;
-    final isDark = theme.isDarkMode;
-    final cardColor = isDark ? AppColorsDark.card : AppColors.card;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final primaryForegroundColor =
-        isDark ? AppColorsDark.primaryForeground : AppColors.primaryForeground;
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
 
     return Column(
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Pet Details',
-                  style: textStyle.copyWith(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: colors.foreground,
                   ),
                 ),
                 const SizedBox(height: 24),
-                CupertinoTextField(
+                AppTextInput(
                   controller: nameController,
                   placeholder: 'Pet Name',
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  style: textStyle,
+                  isDarkMode: isDarkMode,
                 ),
                 const SizedBox(height: 16),
-                CupertinoTextField(
+                AppTextInput(
                   controller: descriptionController,
                   placeholder: 'Description',
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  maxLines: 3,
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  style: textStyle,
+                  isDarkMode: isDarkMode,
                 ),
                 const SizedBox(height: 16),
-                CupertinoTextField(
+                AppTextInput(
                   controller: contactController,
                   placeholder: 'Contact Information',
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  style: textStyle,
+                  isDarkMode: isDarkMode,
                 ),
                 const SizedBox(height: 16),
-                CupertinoButton(
-                  color: cardColor,
-                  child: Text(
-                    selectedDate != null
-                        ? 'Selected Date: ${selectedDate!.toLocal().toString().split('.')[0]}'
-                        : 'Select Date and Time',
-                    style: textStyle,
-                  ),
+                AppButton(
+                  text: selectedDate != null
+                      ? 'Date: ${selectedDate!.toLocal().toString().split('.')[0]}'
+                      : 'Select Date',
+                  variant: ButtonVariant.outline,
+                  isDarkMode: isDarkMode,
                   onPressed: () => _selectDate(context),
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  height: 50,
-                  child: CupertinoAddressAutocomplete(
-                    apiKey: googleApiKey,
-                    controller: locationController,
-                    onLocationSelected: (lat, lng, address) {
-                      setState(() {
-                        selectedLatitude = lat;
-                        selectedLongitude = lng;
-                        locationController.text = address;
-                        isLocationSelected = true;
-                      });
-                    },
-                    textStyle: textStyle,
-                    backgroundColor: cardColor,
-                    clearButtonColor: primaryColor,
-                  ),
+                CupertinoAddressAutocomplete(
+                  apiKey: googleApiKey,
+                  controller: locationController,
+                  isDarkMode: isDarkMode,
+                  onLocationSelected: (lat, lng, address) {
+                    setState(() {
+                      selectedLatitude = lat;
+                      selectedLongitude = lng;
+                      locationController.text = address;
+                    });
+                  },
                 ),
               ],
             ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              CupertinoButton(
-                color: primaryColor.withOpacity(0.8),
+              AppButton(
+                text: 'Back',
+                variant: ButtonVariant.outline,
+                isDarkMode: isDarkMode,
                 onPressed: widget.onBack,
-                child: Text(
-                  'Back',
-                  style: TextStyle(color: primaryForegroundColor),
-                ),
               ),
-              CupertinoButton(
-                color: primaryColor,
-                onPressed: _handleSubmit,
-                child: Text(
-                  'Submit',
-                  style: TextStyle(color: primaryForegroundColor),
+              AppButton(
+                text: 'Submit',
+                variant: ButtonVariant.primary,
+                isDarkMode: isDarkMode,
+                onPressed: () => widget.onSave(
+                  nameController.text,
+                  descriptionController.text,
+                  contactController.text,
+                  selectedDate,
+                  selectedLatitude,
+                  selectedLongitude,
+                  locationController.text,
                 ),
               ),
             ],

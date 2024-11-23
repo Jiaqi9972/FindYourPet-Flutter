@@ -1,7 +1,9 @@
+import 'package:find_your_pet/styles/color/color.dart';
+import 'package:find_your_pet/styles/color/color_dark.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
+import 'package:find_your_pet/styles/ui/card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:find_your_pet/api/api_service.dart';
-import 'package:find_your_pet/layout/main_layout.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'status_page.dart';
@@ -26,20 +28,10 @@ class _AddPageState extends State<AddPage> {
   double? latitude;
   int currentStep = 0;
 
-  void _nextStep() {
-    setState(() {
-      currentStep += 1;
-    });
-  }
-
-  void _prevStep() {
-    setState(() {
-      currentStep -= 1;
-    });
-  }
+  void _nextStep() => setState(() => currentStep += 1);
+  void _prevStep() => setState(() => currentStep -= 1);
 
   Future<void> _submitForm() async {
-    // Validate all required fields
     List<String> missingFields = [];
     if (name.trim().isEmpty) missingFields.add('Pet Name');
     if (description.trim().isEmpty) missingFields.add('Description');
@@ -53,21 +45,24 @@ class _AddPageState extends State<AddPage> {
     if (missingFields.isNotEmpty) {
       showCupertinoDialog(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text('Missing Information'),
-          content: Column(
-            children: [
-              const Text('Please complete the following:'),
-              const SizedBox(height: 8),
-              Text(missingFields.join('\n')),
+        builder: (context) => AppCard(
+          isDarkMode: Provider.of<ThemeProvider>(context).isDarkMode,
+          content: CupertinoAlertDialog(
+            title: const Text('Missing Information'),
+            content: Column(
+              children: [
+                const Text('Please complete the following:'),
+                const SizedBox(height: 8),
+                Text(missingFields.join('\n')),
+              ],
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
             ],
           ),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('OK'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
         ),
       );
       return;
@@ -77,7 +72,7 @@ class _AddPageState extends State<AddPage> {
       String? idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
       if (idToken == null) throw Exception('User not logged in');
 
-      Map<String, dynamic> data = {
+      await ApiService().saveLostPet(idToken, {
         'name': name,
         'description': description,
         'posterContact': posterContact,
@@ -86,42 +81,44 @@ class _AddPageState extends State<AddPage> {
         'lost': lost,
         'longitude': longitude,
         'latitude': latitude,
-      };
+      });
 
-      await ApiService().saveLostPet(idToken, data);
+      if (!mounted) return;
 
       showCupertinoDialog(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text('Success'),
-          content: const Text('Your submission was successful.'),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pushReplacement(
-                  CupertinoPageRoute(
-                    builder: (context) => const MainLayout(currentIndex: 1),
-                  ),
-                );
-              },
-            ),
-          ],
+        builder: (context) => AppCard(
+          isDarkMode: Provider.of<ThemeProvider>(context).isDarkMode,
+          content: CupertinoAlertDialog(
+            title: const Text('Success'),
+            content: const Text('Your submission was successful.'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushReplacementNamed('/');
+                },
+              ),
+            ],
+          ),
         ),
       );
     } catch (e) {
       showCupertinoDialog(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text('Submission Failed'),
-          content: Text('Error: $e'),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('OK'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
+        builder: (context) => AppCard(
+          isDarkMode: Provider.of<ThemeProvider>(context).isDarkMode,
+          content: CupertinoAlertDialog(
+            title: const Text('Submission Failed'),
+            content: Text('Error: $e'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -129,17 +126,26 @@ class _AddPageState extends State<AddPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
 
     return CupertinoPageScaffold(
-      backgroundColor: theme.getAppTheme().scaffoldBackgroundColor,
+      backgroundColor:
+          isDarkMode ? AppColorsDark.background : AppColors.background,
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('Report Pet Information'),
-        backgroundColor: theme.getAppTheme().barBackgroundColor,
+        middle: Text(
+          'Report Pet Information',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: isDarkMode ? AppColorsDark.foreground : AppColors.foreground,
+          ),
+        ),
+        backgroundColor:
+            isDarkMode ? AppColorsDark.background : AppColors.background,
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: IndexedStack(
             index: currentStep,
             children: [

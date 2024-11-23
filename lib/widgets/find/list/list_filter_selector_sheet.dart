@@ -1,22 +1,18 @@
+import 'package:find_your_pet/models/list_location_info.dart';
+import 'package:find_your_pet/provider/pet_status_provider.dart';
+import 'package:find_your_pet/styles/color/app_colors_config.dart';
+import 'package:find_your_pet/provider/theme_provider.dart';
+import 'package:find_your_pet/styles/ui/button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
-import 'package:find_your_pet/models/location_info.dart';
 import 'package:find_your_pet/models/pet_status.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 class ListFilterSelectorSheet extends StatefulWidget {
-  final PetStatus currentStatus;
-  final Function(PetStatus) onStatusChanged;
-
-  const ListFilterSelectorSheet({
-    super.key,
-    required this.currentStatus,
-    required this.onStatusChanged,
-  });
+  const ListFilterSelectorSheet({super.key});
 
   @override
   State<ListFilterSelectorSheet> createState() =>
@@ -30,22 +26,27 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
   late double _radius;
   late LatLng _center;
   String _centerAddress = '';
-  final TextEditingController _searchController = TextEditingController();
   bool _mapInitialized = false;
-  late PetStatus _status;
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _radiusController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _status = widget.currentStatus;
     final locationProvider = context.read<LocationProvider>();
-    final locationInfo = locationProvider.locationInfo;
+    final listLocation = locationProvider.listLocationInfo;
 
-    _radius = locationProvider.radius;
-    _center = locationInfo != null
-        ? LatLng(locationInfo.latitude, locationInfo.longitude)
+    _radius = listLocation?.radius ?? 5.0;
+    _center = listLocation != null
+        ? LatLng(listLocation.latitude, listLocation.longitude)
         : const LatLng(37.7749, -122.4194);
-    _centerAddress = locationInfo?.displayName ?? '';
+
+    if (listLocation != null) {
+      _centerAddress = listLocation.displayName;
+    }
+
+    _updateCircle();
+    _updateMarker();
   }
 
   @override
@@ -99,11 +100,28 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
 
     try {
       List<Location> locations = await locationFromAddress(query);
-      if (locations.isNotEmpty) {
-        await _updateMapCenter(LatLng(
-          locations.first.latitude,
-          locations.first.longitude,
-        ));
+      if (locations.isNotEmpty && mounted) {
+        setState(() {
+          _center = LatLng(locations.first.latitude, locations.first.longitude);
+          _centerAddress = query;
+          _updateCircle();
+          _updateMarker();
+        });
+
+        if (_mapController != null) {
+          await _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(_center, _getZoomLevel(_radius)),
+          );
+        }
+
+        context.read<LocationProvider>().updateListLocation(
+              ListLocationInfo(
+                latitude: locations.first.latitude,
+                longitude: locations.first.longitude,
+                displayName: query,
+                radius: _radius,
+              ),
+            );
       }
     } catch (e) {
       print('Error searching location: $e');
@@ -128,11 +146,30 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
         }
       }
 
-      Position position = await Geolocator.getCurrentPosition();
-      await _updateMapCenter(LatLng(
-        position.latitude,
-        position.longitude,
-      ));
+      final position = await Geolocator.getCurrentPosition();
+
+      setState(() {
+        _center = LatLng(position.latitude, position.longitude);
+        _centerAddress = 'Current Location';
+        _updateCircle();
+        _updateMarker();
+      });
+
+      if (_mapController != null) {
+        await _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(_center, _getZoomLevel(_radius)),
+        );
+      }
+
+      final locationProvider =
+          Provider.of<LocationProvider>(context, listen: false);
+      locationProvider.updateListLocation(
+        ListLocationInfo(
+          latitude: position.latitude,
+          longitude: position.longitude,
+          displayName: 'Current Location',
+        ),
+      );
     } catch (e) {
       print('Error getting current location: $e');
       _showError('Could not get current location.');
@@ -204,8 +241,9 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
   void _initializeMap(GoogleMapController controller) {
     if (!_mapInitialized) {
       _mapController = controller;
-      final theme = context.read<ThemeProvider>();
-      controller.setMapStyle(theme.getGoogleMapStyle());
+      final isDarkMode = context.read<ThemeProvider>().isDarkMode;
+      final colors = AppColorsConfig.getTheme(isDarkMode);
+      controller.setMapStyle(colors.googleMapStyle);
       controller.moveCamera(
         CameraUpdate.newLatLngZoom(_center, _getZoomLevel(_radius)),
       );
@@ -217,17 +255,21 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
+
     final locationProvider = context.watch<LocationProvider>();
+    final statusProvider = context.watch<PetStatusProvider>();
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
       decoration: BoxDecoration(
-        color: theme.colors.background,
+        color: colors.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: Column(
         children: [
+          // Header with title and close button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -238,7 +280,7 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: theme.colors.foreground,
+                      color: colors.foreground,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -248,12 +290,14 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
                   onPressed: () => Navigator.pop(context),
                   child: Icon(
                     CupertinoIcons.xmark,
-                    color: theme.colors.secondaryForeground,
+                    color: colors.secondaryForeground,
                   ),
                 ),
               ],
             ),
           ),
+
+          // Google Map for filter visualization
           Expanded(
             child: GoogleMap(
               initialCameraPosition: CameraPosition(
@@ -275,12 +319,14 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
               myLocationButtonEnabled: false,
             ),
           ),
+
+          // Filters section
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: theme.colors.card,
+            color: colors.background,
             child: Column(
               children: [
-                // Status buttons row
+                // Status selection buttons
                 Row(
                   children: [
                     for (var status in [
@@ -291,29 +337,17 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: CupertinoButton(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            color: _status == status
-                                ? theme.colors.primary
-                                : theme.colors.background,
-                            borderRadius: BorderRadius.circular(8),
-                            onPressed: () {
-                              setState(() => _status = status);
-                              widget.onStatusChanged(status);
-                            },
-                            child: Text(
-                              status == PetStatus.both
-                                  ? 'BOTH'
-                                  : status.name.toUpperCase(),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: _status == status
-                                    ? theme.colors.primaryForeground
-                                    : theme.colors.foreground,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                          child: AppButton(
+                            text: status == PetStatus.both
+                                ? 'BOTH'
+                                : status.name.toUpperCase(),
+                            variant: statusProvider.currentStatus == status
+                                ? ButtonVariant.primary
+                                : ButtonVariant.outline,
+                            isDarkMode: isDarkMode,
+                            fullWidth: true,
+                            onPressed: () =>
+                                statusProvider.updateStatus(status),
                           ),
                         ),
                       ),
@@ -322,22 +356,22 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
 
                 const SizedBox(height: 16),
 
-                // Search bar row
+                // Search bar
                 Row(
                   children: [
                     Expanded(
                       child: Container(
                         height: 44,
                         decoration: BoxDecoration(
-                          color: theme.colors.background,
+                          color: colors.background,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: theme.colors.border,
+                            color: colors.border,
                             width: 1,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: theme.colors.border.withOpacity(0.2),
+                              color: colors.border.withOpacity(0.2),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -349,16 +383,15 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
                               padding: const EdgeInsets.only(left: 12),
                               child: Icon(
                                 CupertinoIcons.search,
-                                color: theme.colors.secondaryForeground,
+                                color: colors.secondaryForeground,
                               ),
                             ),
                             Expanded(
                               child: CupertinoTextField(
                                 controller: _searchController,
-                                placeholder: 'Enter zipcode',
+                                placeholder: 'Enter street, city, or ZIP code',
                                 decoration: null,
-                                style:
-                                    TextStyle(color: theme.colors.foreground),
+                                style: TextStyle(color: colors.foreground),
                                 onSubmitted: _searchLocation,
                               ),
                             ),
@@ -367,30 +400,11 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      height: 44,
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.colors.border.withOpacity(0.2),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: CupertinoButton(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        color: theme.colors.primary,
-                        borderRadius: BorderRadius.circular(8),
-                        onPressed: () =>
-                            _searchLocation(_searchController.text),
-                        child: Text(
-                          'Search',
-                          style: TextStyle(
-                            color: theme.colors.primaryForeground,
-                          ),
-                        ),
-                      ),
+                    AppButton(
+                      text: 'Search',
+                      variant: ButtonVariant.primary,
+                      isDarkMode: isDarkMode,
+                      onPressed: () => _searchLocation(_searchController.text),
                     ),
                   ],
                 ),
@@ -398,58 +412,23 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
                 const SizedBox(height: 16),
 
                 // Current location button
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colors.border.withOpacity(0.2),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: _useCurrentLocation,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: theme.colors.background,
-                        border: Border.all(
-                          color: theme.colors.border,
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            CupertinoIcons.location,
-                            color: theme.colors.primary,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Current location',
-                            style: TextStyle(
-                              color: theme.colors.primary,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                AppButton(
+                  text: 'Current location',
+                  icon: CupertinoIcons.location,
+                  variant: ButtonVariant.outline,
+                  fullWidth: true,
+                  isDarkMode: isDarkMode,
+                  onPressed: _useCurrentLocation,
                 ),
               ],
             ),
           ),
+
+          // Distance slider and apply button
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colors.card,
+              color: colors.background,
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(12)),
             ),
@@ -462,13 +441,14 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: theme.colors.foreground,
+                    color: colors.foreground,
                   ),
                 ),
                 Row(
                   children: [
                     Expanded(
                       child: CupertinoSlider(
+                        activeColor: colors.primary,
                         value: _radius,
                         min: 1,
                         max: 10,
@@ -491,41 +471,22 @@ class _ListFilterSelectorSheetState extends State<ListFilterSelectorSheet> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colors.border.withOpacity(0.2),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+                AppButton(
+                  text: 'Show results',
+                  fullWidth: true,
+                  onPressed: () {
+                    locationProvider.updateListLocation(
+                      ListLocationInfo(
+                        latitude: _center.latitude,
+                        longitude: _center.longitude,
+                        displayName: _centerAddress,
+                        radius: _radius,
                       ),
-                    ],
-                  ),
-                  child: CupertinoButton(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    color: theme.colors.primary,
-                    borderRadius: BorderRadius.circular(8),
-                    onPressed: () {
-                      locationProvider.updateLocation(
-                        LocationInfo(
-                          latitude: _center.latitude,
-                          longitude: _center.longitude,
-                          displayName: _centerAddress,
-                          isCurrentLocation: false,
-                        ),
-                        _radius,
-                      );
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      'Show results',
-                      style: TextStyle(
-                        color: theme.colors.primaryForeground,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
+                    );
+                    Navigator.pop(context);
+                  },
+                  variant: ButtonVariant.primary,
+                  isDarkMode: isDarkMode,
                 ),
               ],
             ),

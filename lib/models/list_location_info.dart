@@ -1,14 +1,15 @@
-// lib/models/location_info.dart
-class LocationInfo {
+class ListLocationInfo {
   final double latitude;
   final double longitude;
   final String displayName;
   final bool isCurrentLocation;
+  final double radius;
 
-  LocationInfo({
+  ListLocationInfo({
     required this.latitude,
     required this.longitude,
     required this.displayName,
     this.isCurrentLocation = false,
+    this.radius = 5.0,
   });
 }

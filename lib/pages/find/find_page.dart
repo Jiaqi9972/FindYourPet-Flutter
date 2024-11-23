@@ -1,13 +1,16 @@
-// lib/pages/main/find_page.dart
-
+import 'package:find_your_pet/models/list_location_info.dart';
+import 'package:find_your_pet/provider/pet_status_provider.dart';
+import 'package:find_your_pet/provider/view_provider.dart';
+import 'package:find_your_pet/styles/color/app_colors_config.dart';
+import 'package:find_your_pet/provider/theme_provider.dart';
+import 'package:find_your_pet/styles/color/color.dart';
+import 'package:find_your_pet/styles/color/color_dark.dart';
 import 'package:find_your_pet/widgets/find/map/pet_map_view.dart';
 import 'package:find_your_pet/widgets/find/view_mode_switcher.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:find_your_pet/models/location_info.dart';
 import 'package:find_your_pet/models/view_mode.dart';
 import 'package:find_your_pet/models/pet_status.dart';
-import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
 import 'package:find_your_pet/widgets/find/list/list_view_header.dart';
 import 'package:find_your_pet/widgets/find/map/map_view_header.dart';
@@ -21,70 +24,49 @@ class FindPage extends StatefulWidget {
 }
 
 class _FindPageState extends State<FindPage> {
-  ViewMode _currentView = ViewMode.list;
-  PetStatus _currentStatus = PetStatus.both;
-  final Map<String, dynamic> _filters = {
-    'lost': null,
-    'radiusInMiles': 5.0,
-  };
-
-  // Map center position
   double? _mapCenterLat;
   double? _mapCenterLng;
 
   @override
   void initState() {
     super.initState();
-    // Initialize location
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final locationProvider = context.read<LocationProvider>();
+      if (locationProvider.listLocationInfo == null) {
+        locationProvider.updateListLocation(
+          ListLocationInfo(
+            latitude: 37.785834,
+            longitude: -122.406417,
+            displayName: 'San Francisco, CA',
+            radius: 5.0,
+          ),
+        );
+      }
       await locationProvider.initCurrentLocation();
-
-      final locationInfo = locationProvider.locationInfo;
-
-      if (locationInfo != null) {
-        setState(() {
-          _mapCenterLat = locationInfo.latitude;
-          _mapCenterLng = locationInfo.longitude;
-        });
-      } else {
-        // Set default coordinates if locationInfo is null
-        setState(() {
-          _mapCenterLat = 37.7749; // Example: San Francisco latitude
-          _mapCenterLng = -122.4194; // San Francisco longitude
-        });
-      }
+      _updateLocationFromProvider(locationProvider);
     });
   }
 
-  void _updateFilters(LocationInfo location) {
-    setState(() {
-      _filters['latitude'] = location.latitude;
-      _filters['longitude'] = location.longitude;
-    });
-  }
+  void _updateLocationFromProvider(LocationProvider provider) {
+    final mapLocation = provider.mapLocationInfo;
+    final listLocation = provider.listLocationInfo;
 
-  void _onStatusChanged(PetStatus status) {
-    setState(() {
-      _currentStatus = status;
-      switch (status) {
-        case PetStatus.both:
-          _filters['lost'] = null;
-          break;
-        case PetStatus.lost:
-          _filters['lost'] = true;
-          break;
-        case PetStatus.found:
-          _filters['lost'] = false;
-          break;
-      }
-    });
-  }
-
-  void _onViewModeChanged(ViewMode mode) {
-    setState(() {
-      _currentView = mode;
-    });
+    if (mapLocation != null) {
+      setState(() {
+        _mapCenterLat = mapLocation.latitude;
+        _mapCenterLng = mapLocation.longitude;
+      });
+    } else if (listLocation != null) {
+      setState(() {
+        _mapCenterLat = listLocation.latitude;
+        _mapCenterLng = listLocation.longitude;
+      });
+    } else {
+      setState(() {
+        _mapCenterLat = 37.7749;
+        _mapCenterLng = -122.4194;
+      });
+    }
   }
 
   void _onAddressChanged(double lat, double lng, String address) {
@@ -96,85 +78,93 @@ class _FindPageState extends State<FindPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
     final locationProvider = context.watch<LocationProvider>();
+    final viewModeProvider = context.watch<ViewModeProvider>();
+    final statusProvider = context.watch<PetStatusProvider>();
 
-    // Update filters
-    if (locationProvider.locationInfo != null) {
-      _updateFilters(locationProvider.locationInfo!);
-      _filters['radiusInMiles'] = locationProvider.radius;
-    }
+    final filters = {
+      'lost': statusProvider.currentStatus == PetStatus.both
+          ? null
+          : statusProvider.currentStatus == PetStatus.lost,
+      'radiusInMiles': 5.0,
+      'latitude': locationProvider.mapLocationInfo?.latitude ?? _mapCenterLat,
+      'longitude': locationProvider.mapLocationInfo?.longitude ?? _mapCenterLng,
+    };
 
-    // Check if map center coordinates are available
     if (_mapCenterLat == null || _mapCenterLng == null) {
-      // Show loading indicator
-      return const Center(
-        child: CupertinoActivityIndicator(),
-      );
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     return CupertinoPageScaffold(
-      backgroundColor: theme.colors.background,
+      backgroundColor: colors.background,
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('Find Your Pet'),
-        backgroundColor: theme.colors.background,
+        middle: Text(
+          'Find Your Pet',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: isDarkMode ? AppColorsDark.foreground : AppColors.foreground,
+          ),
+        ),
+        backgroundColor: colors.background,
       ),
-      child: _currentView == ViewMode.list
+      child: viewModeProvider.currentView == ViewMode.list
           ? Column(
               children: [
                 SafeArea(
                   bottom: false,
                   child: Column(
                     children: [
-                      // View Mode Switcher
                       Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16.0, vertical: 8.0),
                         child: ViewModeSwitcher(
-                          currentView: _currentView,
-                          onViewModeChanged: _onViewModeChanged,
+                          currentView: viewModeProvider.currentView,
+                          onViewModeChanged: (mode) =>
+                              viewModeProvider.setViewMode(mode),
                         ),
                       ),
-                      // Location and Status Filters
-                      ListViewHeader(
-                        currentStatus: _currentStatus,
-                        onStatusChanged: _onStatusChanged,
-                      ),
+                      const ListViewHeader(),
                     ],
                   ),
                 ),
                 Expanded(
                   child: PetListView(
-                    filters: _filters,
-                    locationInfo: locationProvider.locationInfo,
+                    filters: filters,
+                    listlocationInfo: locationProvider.listLocationInfo,
                   ),
                 ),
               ],
             )
-          : Stack(
-              children: [
-                Positioned.fill(
-                  child: PetMapView(
-                    filters: {
-                      'lost': _filters['lost'],
-                    },
-                    initialLat: _mapCenterLat!,
-                    initialLng: _mapCenterLng!,
+          : SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 8.0),
+                    child: ViewModeSwitcher(
+                      currentView: viewModeProvider.currentView,
+                      onViewModeChanged: (mode) =>
+                          viewModeProvider.setViewMode(mode),
+                    ),
                   ),
-                ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: MapViewHeader(
-                    currentStatus: _currentStatus,
-                    onStatusChanged: _onStatusChanged,
-                    currentView: _currentView,
-                    onViewModeChanged: _onViewModeChanged,
+                  MapViewHeader(
                     onAddressChanged: _onAddressChanged,
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: PetMapView(
+                      filters: filters,
+                      initialLat: locationProvider.mapLocationInfo?.latitude ??
+                          _mapCenterLat!,
+                      initialLng: locationProvider.mapLocationInfo?.longitude ??
+                          _mapCenterLng!,
+                    ),
+                  ),
+                ],
+              ),
             ),
     );
   }

@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'package:find_your_pet/styles/color/color.dart';
+import 'package:find_your_pet/styles/color/color_dark.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
+import 'package:find_your_pet/styles/ui/button.dart';
 import 'package:find_your_pet/utils/storage_utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
@@ -145,32 +148,25 @@ class _ImagePageState extends State<ImagePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
-    final textStyle = theme.getAppTheme().textTheme.textStyle;
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           'Add Pet Images',
-          style: textStyle.copyWith(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
+            color: isDarkMode ? AppColorsDark.foreground : AppColors.foreground,
           ),
         ),
         const SizedBox(height: 20),
-        if (_selectedImages.isEmpty && _existingUrls.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Text(
-              'Please select at least one image',
-              style: textStyle.copyWith(color: CupertinoColors.systemGrey),
-            ),
-          ),
-        CupertinoButton(
-          color: theme.getAppTheme().primaryColor,
+        AppButton(
+          text: 'Select Image',
+          variant: ButtonVariant.primary,
+          isDarkMode: isDarkMode,
           onPressed: _isUploading ? null : _pickImage,
-          child: const Text('Select Image'),
         ),
         const SizedBox(height: 20),
         Expanded(
@@ -180,81 +176,80 @@ class _ImagePageState extends State<ImagePage> {
               crossAxisCount: 2,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
+              childAspectRatio: 1, // 添加这个确保子项是正方形
             ),
             itemCount: _existingUrls.length + _selectedImages.length,
             itemBuilder: (context, index) {
               final bool isExisting = index < _existingUrls.length;
-
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: isExisting
-                        ? Image.network(
-                            _existingUrls[index],
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: CupertinoColors.systemGrey6,
-                                child: const Icon(CupertinoIcons.photo),
-                              );
-                            },
-                          )
-                        : Image.file(
-                            _selectedImages[index - _existingUrls.length],
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-                  if (!_isUploading)
-                    Positioned(
-                      top: 5,
-                      right: 5,
-                      child: GestureDetector(
-                        onTap: () => _removeImage(
-                          index,
-                          isExisting,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.black.withOpacity(0.7),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            CupertinoIcons.delete,
-                            color: CupertinoColors.white,
-                            size: 20,
-                          ),
-                        ),
+              return Container(
+                decoration: BoxDecoration(
+                  color: isDarkMode ? AppColorsDark.muted : AppColors.muted,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: isExisting
+                            ? Image.network(
+                                _existingUrls[index],
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  CupertinoIcons.photo,
+                                  color: isDarkMode
+                                      ? AppColorsDark.mutedForeground
+                                      : AppColors.mutedForeground,
+                                ),
+                              )
+                            : Image.file(
+                                _selectedImages[index - _existingUrls.length],
+                                fit: BoxFit.cover,
+                              ),
                       ),
                     ),
-                ],
+                    if (!_isUploading)
+                      Positioned(
+                        top: 5,
+                        right: 5,
+                        child: AppButton(
+                          text: '',
+                          variant: ButtonVariant.destructive,
+                          isDarkMode: isDarkMode,
+                          icon: CupertinoIcons.delete,
+                          onPressed: () => _removeImage(index, isExisting),
+                        ),
+                      ),
+                  ],
+                ),
               );
             },
           ),
         ),
         if (_isUploading)
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: CupertinoActivityIndicator(),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: CupertinoActivityIndicator(
+              color: isDarkMode ? AppColorsDark.primary : AppColors.primary,
+            ),
           ),
-        const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            CupertinoButton(
-              color: theme.getAppTheme().primaryColor.withOpacity(0.8),
+            AppButton(
+              text: 'Back',
+              variant: ButtonVariant.outline,
+              isDarkMode: isDarkMode,
               onPressed: _isUploading ? null : widget.onBack,
-              child: const Text('Back'),
             ),
-            CupertinoButton(
-              color: theme.getAppTheme().primaryColor,
+            AppButton(
+              text: 'Next',
+              variant: ButtonVariant.primary,
+              isDarkMode: isDarkMode,
               onPressed: (_selectedImages.isEmpty && _existingUrls.isEmpty) ||
                       _isUploading
                   ? null
                   : _handleNext,
-              child: const Text('Next'),
             ),
           ],
         ),

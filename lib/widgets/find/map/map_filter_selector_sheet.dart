@@ -1,3 +1,8 @@
+import 'package:find_your_pet/models/map_location_info.dart';
+import 'package:find_your_pet/provider/location_provider.dart';
+import 'package:find_your_pet/provider/pet_status_provider.dart';
+import 'package:find_your_pet/styles/color/app_colors_config.dart';
+import 'package:find_your_pet/styles/ui/button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
@@ -5,14 +10,10 @@ import 'package:find_your_pet/models/pet_status.dart';
 import 'package:geocoding/geocoding.dart';
 
 class MapFilterSelector extends StatefulWidget {
-  final PetStatus currentStatus;
-  final Function(PetStatus) onStatusChanged;
   final Function(double, double, String) onAddressChanged;
 
   const MapFilterSelector({
     super.key,
-    required this.currentStatus,
-    required this.onStatusChanged,
     required this.onAddressChanged,
   });
 
@@ -22,36 +23,83 @@ class MapFilterSelector extends StatefulWidget {
 
 class _MapFilterSelectorState extends State<MapFilterSelector> {
   final TextEditingController _searchController = TextEditingController();
-  late PetStatus _status;
+  String _lastSearchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _status = widget.currentStatus;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final locationProvider = context.read<LocationProvider>();
+      final mapLocation = locationProvider.mapLocationInfo;
+      if (mapLocation != null) {
+        _getPostalCode(mapLocation.latitude, mapLocation.longitude);
+      }
+    });
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  Future<void> _getPostalCode(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty && mounted) {
+        final place = placemarks.first;
+        if (place.postalCode?.isNotEmpty == true) {
+          _searchController.text = place.postalCode!;
+          _lastSearchQuery = place.postalCode!;
+        }
+      }
+    } catch (e) {
+      print('Error getting postal code: $e');
+    }
   }
 
-  Future<void> _searchLocation(String query) async {
-    if (query.isEmpty) return;
+  void _applyChanges() async {
+    final query = _searchController.text;
+
+    if (query.isEmpty || query == _lastSearchQuery) {
+      Navigator.pop(context);
+      return;
+    }
 
     try {
-      List<Location> locations = await locationFromAddress(query);
-      if (locations.isNotEmpty) {
+      final locations = await locationFromAddress(query);
+      if (locations.isNotEmpty && mounted) {
+        final location = locations.first;
+        final placemarks = await placemarkFromCoordinates(
+          location.latitude,
+          location.longitude,
+        );
+
+        String displayName;
+        if (placemarks.isNotEmpty) {
+          final place = placemarks.first;
+          // 只使用城市和州来显示
+          displayName = [
+            place.locality,
+            place.administrativeArea,
+          ].where((e) => e?.isNotEmpty == true).join(", ");
+        } else {
+          displayName = query;
+        }
+
         widget.onAddressChanged(
-          locations.first.latitude,
-          locations.first.longitude,
-          query,
+            location.latitude, location.longitude, displayName);
+
+        Provider.of<LocationProvider>(context, listen: false).updateMapLocation(
+          MapLocationInfo(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            displayName: displayName,
+            radiusInMiles: 5.0,
+          ),
         );
       }
     } catch (e) {
-      print('Error searching location: $e');
-      _showError('Could not find location. Please try a different search.');
+      _showError('Could not find location. Please try again.');
+      return;
     }
+
+    _lastSearchQuery = query;
+    Navigator.pop(context);
   }
 
   void _showError(String message) {
@@ -71,13 +119,21 @@ class _MapFilterSelectorState extends State<MapFilterSelector> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
+    final statusProvider = context.watch<PetStatusProvider>();
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colors.background,
+        color: colors.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: SafeArea(
@@ -85,6 +141,7 @@ class _MapFilterSelectorState extends State<MapFilterSelector> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
               child: Row(
@@ -95,9 +152,8 @@ class _MapFilterSelectorState extends State<MapFilterSelector> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
-                        color: theme.colors.foreground,
+                        color: colors.foreground,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   CupertinoButton(
@@ -105,13 +161,14 @@ class _MapFilterSelectorState extends State<MapFilterSelector> {
                     onPressed: () => Navigator.pop(context),
                     child: Icon(
                       CupertinoIcons.xmark,
-                      color: theme.colors.secondaryForeground,
+                      color: colors.secondaryForeground,
                     ),
                   ),
                 ],
               ),
             ),
-            // Status buttons row
+
+            // Status Selection
             Row(
               children: [
                 for (var status in [
@@ -122,116 +179,90 @@ class _MapFilterSelectorState extends State<MapFilterSelector> {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: CupertinoButton(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        color: _status == status
-                            ? theme.colors.primary
-                            : theme.colors.background,
-                        borderRadius: BorderRadius.circular(8),
+                      child: AppButton(
+                        fullWidth: true,
+                        text: status == PetStatus.both
+                            ? 'BOTH'
+                            : status.name.toUpperCase(),
                         onPressed: () {
-                          setState(() => _status = status);
-                          widget.onStatusChanged(status);
+                          statusProvider.updateStatus(status);
                         },
-                        child: Text(
-                          status == PetStatus.both
-                              ? 'BOTH'
-                              : status.name.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: _status == status
-                                ? theme.colors.primaryForeground
-                                : theme.colors.foreground,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        variant: statusProvider.currentStatus == status
+                            ? ButtonVariant.primary
+                            : ButtonVariant.outline,
+                        isDarkMode: isDarkMode,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Search Bar
+            Container(
+              height: 44,
+              decoration: BoxDecoration(
+                color: colors.background,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colors.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.border.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _searchController,
+                builder: (context, value, child) {
+                  return Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: Icon(
+                          CupertinoIcons.search,
+                          color: colors.secondaryForeground,
                         ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Search bar
-            Row(
-              children: [
-                Expanded(
-                  child: CupertinoTextField(
-                    controller: _searchController,
-                    placeholder: 'Enter zipcode',
-                    prefix: Padding(
-                      padding: const EdgeInsets.only(left: 12),
-                      child: Icon(
-                        CupertinoIcons.search,
-                        color: theme.colors.secondaryForeground,
+                      Expanded(
+                        child: CupertinoTextField(
+                          controller: _searchController,
+                          placeholder: 'Enter ZIP code',
+                          decoration: null,
+                          style: TextStyle(color: colors.foreground),
+                          onSubmitted: (_) => _applyChanges(),
+                        ),
                       ),
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colors.background,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: theme.colors.border,
-                      ),
-                    ),
-                    style: TextStyle(color: theme.colors.foreground),
-                    onSubmitted: _searchLocation,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  color: theme.colors.primary,
-                  borderRadius: BorderRadius.circular(8),
-                  onPressed: () => _searchLocation(_searchController.text),
-                  child: Text(
-                    'Search',
-                    style: TextStyle(
-                      color: theme.colors.primaryForeground,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Location button
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () {
-                // Handle current location
-              },
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: theme.colors.background,
-                  border: Border.all(
-                    color: theme.colors.border,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.location,
-                      color: theme.colors.primary,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Current location',
-                      style: TextStyle(
-                        color: theme.colors.primary,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
+                      if (value.text.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Icon(
+                              CupertinoIcons.clear_circled_solid,
+                              color: colors.secondaryForeground,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Apply Button
+            AppButton(
+              text: 'Apply',
+              fullWidth: true,
+              onPressed: _applyChanges,
+              variant: ButtonVariant.primary,
+              isDarkMode: isDarkMode,
             ),
           ],
         ),

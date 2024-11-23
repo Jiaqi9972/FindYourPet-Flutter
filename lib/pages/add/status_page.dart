@@ -1,4 +1,6 @@
+import 'package:find_your_pet/styles/color/app_colors_config.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
+import 'package:find_your_pet/styles/ui/button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
@@ -14,49 +16,36 @@ class StatusPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
-    final appTheme = theme.getAppTheme();
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
 
-    return CupertinoPageScaffold(
-      backgroundColor: appTheme.scaffoldBackgroundColor,
-      child: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                'Lost or Found?',
-                style: appTheme.textTheme.textStyle.copyWith(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 40),
-              CupertinoButton(
-                color: appTheme.primaryColor,
-                child: Text(
-                  'I Lost a Pet',
-                  style: TextStyle(
-                    color: appTheme.primaryContrastingColor,
-                  ),
-                ),
-                onPressed: () => onStatusSelected(true),
-              ),
-              const SizedBox(height: 20),
-              CupertinoButton(
-                color: appTheme.primaryColor,
-                child: Text(
-                  'I Found a Pet',
-                  style: TextStyle(
-                    color: appTheme.primaryContrastingColor,
-                  ),
-                ),
-                onPressed: () => onStatusSelected(false),
-              ),
-            ],
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Lost or Found?',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: colors.foreground,
+            ),
           ),
-        ),
+          const SizedBox(height: 40),
+          AppButton(
+            text: 'I Lost a Pet',
+            variant: ButtonVariant.primary,
+            isDarkMode: isDarkMode,
+            onPressed: () => onStatusSelected(true),
+          ),
+          const SizedBox(height: 20),
+          AppButton(
+            text: 'I Found a Pet',
+            variant: ButtonVariant.primary,
+            isDarkMode: isDarkMode,
+            onPressed: () => onStatusSelected(false),
+          ),
+        ],
       ),
     );
   }

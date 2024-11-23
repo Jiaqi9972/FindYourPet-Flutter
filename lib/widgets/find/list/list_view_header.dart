@@ -1,60 +1,55 @@
+import 'package:find_your_pet/styles/color/app_colors_config.dart';
+import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:find_your_pet/widgets/find/list/list_filter_selector_sheet.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:find_your_pet/provider/theme_provider.dart';
 import 'package:find_your_pet/provider/location_provider.dart';
-import 'package:find_your_pet/models/pet_status.dart';
 
 class ListViewHeader extends StatelessWidget {
-  final PetStatus currentStatus;
-  final Function(PetStatus) onStatusChanged;
-
   const ListViewHeader({
     super.key,
-    required this.currentStatus,
-    required this.onStatusChanged,
   });
 
   void _showFilterSelector(BuildContext context) {
     showCupertinoModalPopup(
       context: context,
-      builder: (context) => ListFilterSelectorSheet(
-        currentStatus: currentStatus,
-        onStatusChanged: onStatusChanged,
-      ),
+      builder: (context) => ListFilterSelectorSheet(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
+
     final locationProvider = context.watch<LocationProvider>();
 
     return Container(
-      color: theme.colors.card.withOpacity(0.9),
+      color: colors.background.withOpacity(0.9),
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Row(
         children: [
           Icon(
             CupertinoIcons.location_fill,
-            color: theme.colors.foreground,
+            color: colors.foreground,
             size: 18,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              locationProvider.locationInfo?.displayName ?? 'Select Location',
+              locationProvider.listLocationInfo?.displayName ??
+                  'Select Location',
               style: TextStyle(
-                color: theme.colors.foreground,
+                color: colors.foreground,
                 fontSize: 16,
               ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
-            'Within ${locationProvider.radius.toInt()} miles',
+            'Within ${locationProvider.listLocationInfo?.radius.toInt() ?? 5} miles',
             style: TextStyle(
-              color: theme.colors.foreground,
+              color: colors.foreground,
               fontSize: 16,
             ),
           ),
@@ -65,16 +60,16 @@ class ListViewHeader extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               decoration: BoxDecoration(
-                color: theme.colors.secondary,
+                color: colors.secondary,
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: theme.colors.border),
+                border: Border.all(color: colors.border),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     CupertinoIcons.slider_horizontal_3,
-                    color: theme.colors.secondaryForeground,
+                    color: colors.secondaryForeground,
                     size: 16,
                   ),
                 ],

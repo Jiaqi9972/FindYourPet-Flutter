@@ -1,9 +1,9 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:find_your_pet/api/api_service.dart';
+import 'package:find_your_pet/models/lost_pet_detail.dart';
+import 'package:find_your_pet/styles/color/app_colors_config.dart';
 import 'package:find_your_pet/provider/theme_provider.dart';
-import '../../models/lost_pet_detail.dart';
-import '../../api/api_service.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 
 class PetDetailPage {
   static void show(BuildContext context, String petId) {
@@ -76,14 +76,15 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
     );
   }
 
-  Widget _buildImageGallery(ThemeProvider theme) {
+  Widget _buildImageGallery(bool isDarkMode) {
     final urls = _petDetail?.petImageUrls ?? [];
+    final colors = AppColorsConfig.getTheme(isDarkMode);
 
     if (urls.isEmpty) {
       return Container(
         height: 200,
         decoration: BoxDecoration(
-          color: theme.colors.muted,
+          color: colors.muted,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -92,13 +93,13 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
             Icon(
               CupertinoIcons.photo,
               size: 48,
-              color: theme.colors.mutedForeground,
+              color: colors.mutedForeground,
             ),
             const SizedBox(height: 8),
             Text(
               'No images available',
               style: TextStyle(
-                color: theme.colors.mutedForeground,
+                color: colors.mutedForeground,
                 fontSize: 14,
               ),
             ),
@@ -124,7 +125,7 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.colors.border),
+                  border: Border.all(color: colors.border),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Image.network(
@@ -132,20 +133,20 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
-                      color: theme.colors.muted,
+                      color: colors.muted,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             CupertinoIcons.exclamationmark_circle,
-                            color: theme.colors.mutedForeground,
+                            color: colors.mutedForeground,
                             size: 40,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Failed to load image',
                             style: TextStyle(
-                              color: theme.colors.mutedForeground,
+                              color: colors.mutedForeground,
                               fontSize: 14,
                             ),
                           ),
@@ -172,8 +173,8 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: index == _currentImageIndex
-                        ? theme.colors.primary
-                        : theme.colors.muted,
+                        ? colors.primary
+                        : colors.muted,
                   ),
                 ),
               ),
@@ -183,15 +184,17 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
     );
   }
 
-  Widget _buildInfoSection(String title, String content, ThemeProvider theme) {
+  Widget _buildInfoSection(
+      String title, String content, bool isDarkMode, Color foreground) {
+    final colors = AppColorsConfig.getTheme(isDarkMode);
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colors.card,
+        color: colors.background,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,7 +202,7 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
           Text(
             title,
             style: TextStyle(
-              color: theme.colors.mutedForeground,
+              color: colors.mutedForeground,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -208,7 +211,7 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
           Text(
             content,
             style: TextStyle(
-              color: theme.colors.foreground,
+              color: foreground,
               fontSize: 16,
             ),
           ),
@@ -222,20 +225,17 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildStatusBadge(ThemeProvider theme) {
+  Widget _buildStatusBadge(Color badgeColor, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color:
-            _petDetail!.lost ? theme.colors.destructive : theme.colors.primary,
+        color: badgeColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
         _petDetail!.lost ? 'Lost' : 'Found',
         style: TextStyle(
-          color: _petDetail!.lost
-              ? theme.colors.destructiveForeground
-              : theme.colors.primaryForeground,
+          color: textColor,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -245,8 +245,9 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
-    final colors = theme.colors;
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final colors = AppColorsConfig.getTheme(isDarkMode);
+
     final size = MediaQuery.of(context).size;
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
@@ -327,7 +328,7 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildImageGallery(theme),
+                      _buildImageGallery(isDarkMode),
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -342,7 +343,14 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
                               ),
                             ),
                           ),
-                          _buildStatusBadge(theme),
+                          _buildStatusBadge(
+                            _petDetail!.lost
+                                ? colors.destructive
+                                : colors.primary,
+                            _petDetail!.lost
+                                ? colors.destructiveForeground
+                                : colors.primaryForeground,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -357,17 +365,20 @@ class _PetDetailSheetState extends State<_PetDetailSheet> {
                       _buildInfoSection(
                         'Description',
                         _petDetail!.description,
-                        theme,
+                        isDarkMode,
+                        colors.foreground,
                       ),
                       _buildInfoSection(
                         'Location',
                         _petDetail!.address,
-                        theme,
+                        isDarkMode,
+                        colors.foreground,
                       ),
                       _buildInfoSection(
                         'Contact',
                         _petDetail!.posterContact,
-                        theme,
+                        isDarkMode,
+                        colors.foreground,
                       ),
                       SizedBox(height: bottomPadding + 16),
                     ],
